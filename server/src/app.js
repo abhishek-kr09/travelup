@@ -11,18 +11,23 @@ import bookingRoutes from "./routes/booking.routes.js";
 
 const app = express();
 
+
 app.use(cors({
   origin: config.clientURL,
   credentials: true
 }));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 app.use(morgan("dev"));
 app.use(cookieParser());
 
+
+
 app.use("/api/auth", authRoutes);
 app.use("/api/listings", listingRoutes);
-app.use("/api/listings/:id/reviews", reviewRoutes);
+app.use("/api/listings", reviewRoutes);
 app.use("/api/bookings", bookingRoutes);
 
 

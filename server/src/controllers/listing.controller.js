@@ -1,143 +1,183 @@
 const Listing = require("../models/listing.model");
 const geocodeLocation = require("../utils/geocode");
+const { cloudinary } = require("../services/cloudConfig");
 
-// GET ALL (with search + category filter)
+/* =========================
+   GET ALL
+========================= */
 exports.getAllListings = async (req, res) => {
-  const search = (req.query.search || "").trim();
-  const category = (req.query.category || "").trim();
+  try {
+    const { sort } = req.query;
 
-  const filter = {};
+    let sortOption = {};
 
-  if (search) {
-    filter.$or = [
-      { title: { $regex: search, $options: "i" } },
-      { location: { $regex: search, $options: "i" } },
-    ];
+    if (sort === "price_asc") sortOption.price = 1;
+    if (sort === "price_desc") sortOption.price = -1;
+
+    const listings = await Listing.find().sort(sortOption);
+
+    res.status(200).json({
+      success: true,
+      count: listings.length,
+      data: listings,
+    });
+  } catch (err) {
+    console.error("GET ALL ERROR:", err);
+    res.status(500).json({ success: false });
   }
-
-  if (category) {
-    filter.category = category;
-  }
-
-  const listings = await Listing.find(filter);
-
-  res.status(200).json({
-    success: true,
-    count: listings.length,
-    data: listings,
-  });
 };
 
-// GET ONE
+/* =========================
+   GET ONE
+========================= */
 exports.getListingById = async (req, res) => {
-  const { id } = req.params;
+  try {
+    const listing = await Listing.findById(req.params.id)
+      .populate({
+        path: "reviews",
+        populate: { path: "author" },
+      })
+      .populate("owner");
 
-  const listing = await Listing.findById(id)
-    .populate({
-      path: "reviews",
-      populate: { path: "author" },
-    })
-    .populate("owner");
-
-  if (!listing) {
-    return res.status(404).json({
-      success: false,
-      message: "Listing not found",
-    });
-  }
-
-  res.status(200).json({
-    success: true,
-    data: listing,
-  });
-};
-
-// CREATE
-exports.createListing = async (req, res) => {
-  const { location, country } = req.body;
-
-  const geometry = await geocodeLocation(location, country);
-
-  if (!geometry) {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid location",
-    });
-  }
-
-  const newListing = new Listing({
-    ...req.body,
-    owner: req.user._id,
-    geometry,
-  });
-
-  if (req.file) {
-    newListing.image = {
-      url: req.file.path,
-      filename: req.file.filename,
-    };
-  }
-
-  const savedListing = await newListing.save();
-
-  res.status(201).json({
-    success: true,
-    data: savedListing,
-  });
-};
-
-// UPDATE
-exports.updateListing = async (req, res) => {
-  const { id } = req.params;
-
-  let listing = await Listing.findById(id);
-
-  if (!listing) {
-    return res.status(404).json({
-      success: false,
-      message: "Listing not found",
-    });
-  }
-
-  Object.assign(listing, req.body);
-
-  if (req.file) {
-    if (listing.image?.filename) {
-      await cloudinary.uploader.destroy(listing.image.filename);
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: "Listing not found",
+      });
     }
-    listing.image = {
-      url: req.file.path,
-      filename: req.file.filename,
-    };
+
+    res.status(200).json({
+      success: true,
+      data: listing,
+    });
+  } catch (err) {
+    console.error("GET ONE ERROR:", err);
+    res.status(500).json({ success: false });
   }
-
-  await listing.save();
-
-  res.status(200).json({
-    success: true,
-    data: listing,
-  });
 };
 
-// DELETE
-exports.deleteListing = async (req, res) => {
-  const { id } = req.params;
+/* =========================
+   CREATE
+========================= */
+exports.createListing = async (req, res) => {
+  try {
+    const { location, country } = req.body;
 
-  const deleted = await Listing.findByIdAndDelete(id);
+    const geometry = await geocodeLocation(location, country);
 
-  if (!deleted) {
-    return res.status(404).json({
-      success: false,
-      message: "Listing not found",
+    if (!geometry) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid location",
+      });
+    }
+
+    const newListing = new Listing({
+      ...req.body,
+      owner: req.user._id,
+      geometry,
     });
-  }
 
-  if (deleted.image?.filename) {
-    await cloudinary.uploader.destroy(deleted.image.filename);
-  }
+    if (req.file) {
+      newListing.image = {
+        url: req.file.path,
+        filename: req.file.filename, // already Travelup/xxxx
+      };
+    }
 
-  res.status(200).json({
-    success: true,
-    message: "Listing deleted successfully",
-  });
+    const savedListing = await newListing.save();
+
+    res.status(201).json({
+      success: true,
+      data: savedListing,
+    });
+  } catch (err) {
+    console.error("CREATE ERROR:", err);
+    res.status(500).json({ success: false });
+  }
+};
+
+/* =========================
+   UPDATE
+========================= */
+exports.updateListing = async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: "Listing not found",
+      });
+    }
+
+    Object.assign(listing, req.body);
+
+    if (req.file) {
+      // delete old image
+      if (listing.image?.filename) {
+        const result = await cloudinary.uploader.destroy(
+          listing.image.filename
+        );
+        console.log("Old image delete result:", result);
+      }
+
+      listing.image = {
+        url: req.file.path,
+        filename: req.file.filename,
+      };
+    }
+
+    await listing.save();
+
+    res.status(200).json({
+      success: true,
+      data: listing,
+    });
+  } catch (err) {
+    console.error("UPDATE ERROR:", err);
+    res.status(500).json({ success: false });
+  }
+};
+
+/* =========================
+   DELETE
+========================= */
+exports.deleteListing = async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: "Listing not found",
+      });
+    }
+
+    // 🔥 IMPORTANT: delete image FIRST
+    if (listing.image?.filename) {
+      const result = await cloudinary.uploader.destroy(
+        listing.image.filename
+      );
+
+      console.log("Cloudinary delete result:", result);
+
+      if (result.result !== "ok" && result.result !== "not found") {
+        return res.status(500).json({
+          success: false,
+          message: "Cloudinary image deletion failed",
+        });
+      }
+    }
+
+    await listing.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: "Listing deleted successfully",
+    });
+  } catch (err) {
+    console.error("DELETE ERROR:", err);
+    res.status(500).json({ success: false });
+  }
 };

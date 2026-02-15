@@ -4,7 +4,7 @@ const Review = require("../models/review.model");
 
 // CREATE REVIEW
 exports.createReview = async (req, res) => {
-  const { id } = req.params; // listing id
+  const { id } = req.params;
   const { comment, rating } = req.body;
 
   const listing = await Listing.findById(id);
@@ -19,7 +19,8 @@ exports.createReview = async (req, res) => {
   const review = new Review({
     comment,
     rating,
-    author: req.user._id
+    author: req.user._id,
+    listing: id   // 🔥 IMPORTANT FIX
   });
 
   await review.save();
@@ -29,7 +30,6 @@ exports.createReview = async (req, res) => {
 
   res.status(201).json({
     success: true,
-    message: "Review created successfully",
     data: review
   });
 };
@@ -64,5 +64,19 @@ exports.deleteReview = async (req, res) => {
   res.status(200).json({
     success: true,
     message: "Review deleted successfully"
+  });
+};
+
+exports.getReviewsForListing = async (req, res) => {
+  const { id } = req.params;
+
+  const reviews = await Review.find({ listing: id })
+    .populate("author", "username")
+    .sort({ createdAt: -1 });
+
+  res.status(200).json({
+    success: true,
+    count: reviews.length,
+    data: reviews
   });
 };

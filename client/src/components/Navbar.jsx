@@ -1,38 +1,48 @@
-import ThemeToggle from "./ThemeToggle";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import ThemeToggle from "../components/ThemeToggle";
 
 export default function Navbar() {
-  return (
-    <header className="sticky top-0 z-50 backdrop-blur-md bg-white/80 dark:bg-zinc-900/80 border-b border-gray-200 dark:border-zinc-800">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+  const { user, logout } = useAuth();
 
+  return (
+    <nav className="bg-gray-100 dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800">
+      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
-        <Link
-          to="/listings"
-          className="text-xl font-semibold text-red-500"
-        >
+        <Link to="/listings" className="text-xl font-semibold">
           TravelUp
         </Link>
 
-        {/* Right Side */}
+        {/* Right Section */}
         <div className="flex items-center gap-6">
           <Link
-            to="/listings"
-            className="hover:text-red-500 transition"
+            to="/listings/new"
+            className="px-4 py-2 rounded-xl bg-black text-white text-sm hover:opacity-90 transition"
           >
-            Explore
+            + Create Listing
           </Link>
 
-          <Link
-            to="/login"
-            className="hover:text-red-500 transition"
-          >
-            Login
-          </Link>
+          {user ? (
+            <button
+              onClick={logout}
+              className="text-sm text-gray-600 dark:text-gray-300"
+            >
+              Logout
+            </button>
+          ) : (
+            <Link to="/login" className="text-sm">
+              Login
+            </Link>
+          )}
 
+          {/* Theme Toggle */}
           <ThemeToggle />
         </div>
       </div>
-    </header>
+    </nav>
   );
+}
+
+{
+  /* <ThemeToggle/> */
 }

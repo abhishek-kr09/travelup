@@ -2,22 +2,25 @@ const express = require("express");
 const router = express.Router({ mergeParams: true });
 
 const reviewController = require("../controllers/review.controller");
+const { protect } = require("../middlewares/auth.middleware");
 const wrapAsync = require("../utils/wrapAsync");
 
-const { protect } = require("../middlewares/auth.middleware");
-
-
-// CREATE REVIEW
+// POST /api/listings/:id/reviews
 router.post(
-  "/",
+  "/:id/reviews",
   protect,
   wrapAsync(reviewController.createReview)
 );
 
+// GET /api/listings/:id/reviews
+router.get(
+  "/:id/reviews",
+  wrapAsync(reviewController.getReviewsForListing)
+);
 
-// DELETE REVIEW
+// DELETE /api/listings/:id/reviews/:reviewId
 router.delete(
-  "/:reviewId",
+  "/:id/reviews/:reviewId",
   protect,
   wrapAsync(reviewController.deleteReview)
 );
