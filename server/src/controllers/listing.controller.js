@@ -102,7 +102,9 @@ exports.createListing = async (req, res) => {
 ========================= */
 exports.updateListing = async (req, res) => {
   try {
-    const listing = await Listing.findById(req.params.id);
+    const { id } = req.params;
+
+    const listing = await Listing.findById(id);
 
     if (!listing) {
       return res.status(404).json({
@@ -111,15 +113,21 @@ exports.updateListing = async (req, res) => {
       });
     }
 
-    Object.assign(listing, req.body);
+    listing.title = req.body.title ?? listing.title;
+    listing.description = req.body.description ?? listing.description;
+    listing.price = req.body.price ?? listing.price;
+    listing.location = req.body.location ?? listing.location;
+    listing.country = req.body.country ?? listing.country;
+    listing.category = req.body.category ?? listing.category;
 
+    // Handle image safely
     if (req.file) {
-      // delete old image
       if (listing.image?.filename) {
-        const result = await cloudinary.uploader.destroy(
-          listing.image.filename
-        );
-        console.log("Old image delete result:", result);
+        try {
+          await cloudinary.uploader.destroy(listing.image.filename);
+        } catch (err) {
+          console.error("Cloudinary destroy error:", err.message);
+        }
       }
 
       listing.image = {
@@ -134,11 +142,19 @@ exports.updateListing = async (req, res) => {
       success: true,
       data: listing,
     });
+
   } catch (err) {
     console.error("UPDATE ERROR:", err);
-    res.status(500).json({ success: false });
+    res.status(500).json({
+      success: false,
+      message: "Update failed",
+    });
   }
 };
+
+
+
+
 
 /* =========================
    DELETE

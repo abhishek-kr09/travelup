@@ -6,6 +6,7 @@ export default function EditListing() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const [preview, setPreview] = useState("");
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -13,7 +14,7 @@ export default function EditListing() {
     location: "",
     country: "",
     category: "Rooms",
-    image: null, // 👈 add image field
+    image: null,
   });
 
   useEffect(() => {
@@ -22,7 +23,21 @@ export default function EditListing() {
 
   const fetchListing = async () => {
     const res = await API.get(`/listings/${id}`);
-    setForm(res.data.data);
+    const data = res.data.data;
+
+    // 🔥 Keep preview separate
+    setPreview(data.image?.url || "");
+
+    // 🔥 Only keep editable fields
+    setForm({
+      title: data.title || "",
+      description: data.description || "",
+      price: data.price || "",
+      location: data.location || "",
+      country: data.country || "",
+      category: data.category || "Rooms",
+      image: null, // always reset
+    });
   };
 
   const handleChange = (e) => {
@@ -37,18 +52,26 @@ export default function EditListing() {
 
     try {
       const formData = new FormData();
-      Object.keys(form).forEach((key) => {
-        formData.append(key, form[key]);
-      });
+
+      formData.append("title", form.title);
+      formData.append("description", form.description);
+      formData.append("price", form.price);
+      formData.append("location", form.location);
+      formData.append("country", form.country);
+      formData.append("category", form.category);
+
+      // 🔥 Only send file if new image selected
+      if (form.image instanceof File) {
+        formData.append("image", form.image);
+      }
 
       await API.put(`/listings/${id}`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
       navigate(`/listings/${id}`);
     } catch (err) {
+      console.error("Update error:", err.response?.data || err.message);
       alert("Update failed");
     }
   };
@@ -61,23 +84,26 @@ export default function EditListing() {
       >
         <h2 className="text-2xl font-bold text-center">Edit Listing</h2>
 
-        {/* ✅ Show existing image preview */}
-        {form.image?.url && (
+        {/* Preview */}
+        {preview && (
           <img
-            src={form.image.url}
+            src={preview}
             alt="Preview"
             className="w-full h-48 object-cover rounded-xl mb-4"
           />
         )}
 
-        {/* ✅ File input for new image */}
+        {/* File Upload */}
         <input
           type="file"
-          name="image"
           accept="image/*"
-          onChange={(e) =>
-            setForm({ ...form, image: e.target.files[0] })
-          }
+          onChange={(e) => {
+            const file = e.target.files[0];
+            if (file) {
+              setForm({ ...form, image: file });
+              setPreview(URL.createObjectURL(file));
+            }
+          }}
           className="w-full p-3 border rounded-lg"
         />
 

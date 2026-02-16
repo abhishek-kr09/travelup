@@ -34,5 +34,4 @@ router.patch(
   wrapAsync(bookingController.cancelBooking)
 );
 
-
 module.exports = router;

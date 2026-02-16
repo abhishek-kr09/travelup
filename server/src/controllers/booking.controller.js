@@ -7,24 +7,45 @@ const isAvailable = async (listingId, checkIn, checkOut) => {
   const existing = await Booking.find({
     listing: listingId,
     status: { $ne: "cancelled" },
-    $or: [
-      {
-        checkIn: { $lt: new Date(checkOut) },
-        checkOut: { $gt: new Date(checkIn) }
-      }
-    ]
+    checkIn: { $lt: new Date(checkOut) },
+    checkOut: { $gt: new Date(checkIn) }
   });
 
   return existing.length === 0;
 };
 
 
+
 // CREATE BOOKING
 exports.createBooking = async (req, res) => {
-  const { listingId  } = req.params; // listing id
-  const { checkIn, checkOut, guests } = req.body;
+  const { listingId } = req.params;
+  const { checkIn, checkOut, guests = 1 } = req.body;
 
-  const listing = await Listing.findById(listingId );
+  if (!checkIn || !checkOut) {
+    return res.status(400).json({
+      success: false,
+      message: "Check-in and check-out required"
+    });
+  }
+
+  const startDate = new Date(checkIn);
+  const endDate = new Date(checkOut);
+
+  if (isNaN(startDate) || isNaN(endDate)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid dates"
+    });
+  }
+
+  if (endDate <= startDate) {
+    return res.status(400).json({
+      success: false,
+      message: "Check-out must be after check-in"
+    });
+  }
+
+  const listing = await Listing.findById(listingId);
 
   if (!listing) {
     return res.status(404).json({
@@ -33,26 +54,15 @@ exports.createBooking = async (req, res) => {
     });
   }
 
-  // 🚫 Owner cannot book own listing
-if (listing.owner?.toString() === req.user._id.toString())
- {
+  if (listing.owner.toString() === req.user._id.toString()) {
     return res.status(403).json({
       success: false,
       message: "You cannot book your own listing"
     });
   }
 
-  const available = await isAvailable(listingId , checkIn, checkOut);
-
-  if (!available) {
-    return res.status(400).json({
-      success: false,
-      message: "Dates not available"
-    });
-  }
-
   const nights = Math.ceil(
-    (new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)
+    (endDate - startDate) / (1000 * 60 * 60 * 24)
   );
 
   if (nights <= 0) {
@@ -62,30 +72,41 @@ if (listing.owner?.toString() === req.user._id.toString())
     });
   }
 
+  const available = await isAvailable(listingId, startDate, endDate);
+
+  if (!available) {
+    return res.status(400).json({
+      success: false,
+      message: "Dates not available"
+    });
+  }
+
   const pricePerNight = listing.price;
   const subtotal = pricePerNight * nights;
-  const tax = subtotal * 0.18;
+  const tax = Math.round(subtotal * 0.18);
   const total = subtotal + tax;
 
   const booking = await Booking.create({
-    listing: listing._id,
-    user: req.user._id,
-    checkIn,
-    checkOut,
-    guests,
-    pricePerNight,
-    nights,
-    subtotal,
-    tax,
-    total
-  });
+  listing: listing._id,
+  user: req.user._id,
+  checkIn: startDate,
+  checkOut: endDate,
+  guests,
+  pricePerNight,
+  nights,
+  subtotal,
+  tax,
+  total,
+  status: "confirmed" // ✅ Instant booking
+});
+
 
   res.status(201).json({
     success: true,
-    message: "Booking created successfully",
     data: booking
   });
 };
+
 
 
 // GET MY BOOKINGS
@@ -102,8 +123,9 @@ exports.getMyBookings = async (req, res) => {
 };
 
 
-// GET BOOKINGS FOR HOST
+// GET BOOKINGS FOR HOST (Instant Book Version)
 exports.getHostBookings = async (req, res) => {
+  // Get all listings owned by host
   const listings = await Listing.find({ owner: req.user._id }).select("_id");
 
   const listingIds = listings.map(l => l._id);
@@ -115,12 +137,34 @@ exports.getHostBookings = async (req, res) => {
     .populate("user", "username email")
     .sort({ createdAt: -1 });
 
+  // 🔥 Revenue calculation only from confirmed bookings
+  const confirmedBookings = bookings.filter(
+    b => b.status === "confirmed"
+  );
+
+  const cancelledBookings = bookings.filter(
+    b => b.status === "cancelled"
+  );
+
+  const totalRevenue = confirmedBookings.reduce(
+    (sum, b) => sum + (b.total || 0),
+    0
+  );
+
   res.status(200).json({
     success: true,
-    count: bookings.length,
-    data: bookings
+    data: {
+      summary: {
+        totalRevenue,
+        totalBookings: bookings.length
+      },
+      confirmedBookings,
+      cancelledBookings
+    }
   });
 };
+
+
 
 
 // CANCEL BOOKING
@@ -152,3 +196,6 @@ exports.cancelBooking = async (req, res) => {
     message: "Booking cancelled successfully"
   });
 };
+
+
+

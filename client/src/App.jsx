@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
-import Navbar from "./components/Navbar"; 
+import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
@@ -10,6 +10,10 @@ import Listings from "./pages/Listings";
 import CreateListing from "./pages/CreateListing";
 import ListingDetails from "./pages/ListingDetails";
 import EditListing from "./pages/EditListing"; // 👈 import your EditListing
+import CreateBooking from "./pages/CreateBooking";
+
+import MyBookings from "./pages/MyBookings";
+import HostBookings from "./pages/HostBookings";
 
 function App() {
   return (
@@ -54,6 +58,33 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <EditListing />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/listings/:id/book"
+                element={
+                  <ProtectedRoute>
+                    <CreateBooking />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/bookings/my"
+                element={
+                  <ProtectedRoute>
+                    <MyBookings />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/bookings/manage"
+                element={
+                  <ProtectedRoute>
+                    <HostBookings />
                   </ProtectedRoute>
                 }
               />

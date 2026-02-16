@@ -6,63 +6,63 @@ const bookingSchema = new Schema(
     listing: {
       type: Schema.Types.ObjectId,
       ref: "Listing",
-      required: true
+      required: true,
     },
 
     user: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
     },
 
     checkIn: {
       type: Date,
-      required: true
+      required: true,
     },
 
     checkOut: {
       type: Date,
-      required: true
+      required: true,
     },
 
     guests: {
       type: Number,
       min: 1,
-      default: 1
+      default: 1,
     },
 
     pricePerNight: {
       type: Number,
-      required: true
+      required: true,
     },
 
     nights: {
       type: Number,
-      required: true
+      required: true,
     },
 
     subtotal: {
       type: Number,
-      required: true
+      required: true,
     },
 
     tax: {
       type: Number,
-      required: true
+      required: true,
     },
 
     total: {
       type: Number,
-      required: true
+      required: true,
     },
 
     status: {
       type: String,
-      enum: ["pending", "confirmed", "cancelled"],
-      default: "confirmed"
-    }
+      enum: ["confirmed", "cancelled"],
+      default: "confirmed",
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Booking", bookingSchema);
