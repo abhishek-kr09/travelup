@@ -18,7 +18,9 @@ export default function Listings() {
   const fetchListings = async () => {
     try {
       const res = await API.get("/listings");
-      setListings(res.data.data);
+      setListings(res.data.data ||[]);
+
+      console.log("Listings API response:", res.data);
     } catch (err) {
       console.error("Error fetching listings:", err);
     } finally {
