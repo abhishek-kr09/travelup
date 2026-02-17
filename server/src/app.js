@@ -11,6 +11,7 @@ import bookingRoutes from "./routes/booking.routes.js";
 import { stripeWebhook } from "./controllers/booking.controller.js";
 
 const app = express();
+app.set("trust proxy", 1);
 
 // 🔥 Webhook FIRST — before any body parser
 app.post(
