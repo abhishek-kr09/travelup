@@ -74,12 +74,17 @@ const handleBooking = async () => {
   try {
     setLoading(true);
 
-    await API.post(`/bookings/${id}`, {
-      checkIn,
-      checkOut
-    });
+    const res = await API.post(
+      `/bookings/checkout/${id}`,
+      {
+        checkIn,
+        checkOut,
+        guests: 1, // or however you’re tracking guest count
+      }
+    );
 
-    navigate("/bookings/my");
+    // ✅ Redirect to checkout page
+    window.location.href = res.data.url;
 
   } catch (err) {
     setError(

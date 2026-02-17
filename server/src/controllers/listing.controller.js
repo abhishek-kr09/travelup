@@ -10,7 +10,6 @@ exports.getAllListings = async (req, res) => {
     const { sort } = req.query;
 
     let sortOption = {};
-
     if (sort === "price_asc") sortOption.price = 1;
     if (sort === "price_desc") sortOption.price = -1;
 
@@ -21,11 +20,14 @@ exports.getAllListings = async (req, res) => {
       count: listings.length,
       data: listings,
     });
+
   } catch (err) {
     console.error("GET ALL ERROR:", err);
     res.status(500).json({ success: false });
   }
 };
+
+
 
 /* =========================
    GET ONE
@@ -144,12 +146,15 @@ exports.updateListing = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("UPDATE ERROR:", err);
-    res.status(500).json({
-      success: false,
-      message: "Update failed",
-    });
-  }
+  console.error("UPDATE ERROR:", err);
+  console.error("STACK:", err.stack);
+
+  res.status(500).json({
+    success: false,
+    message: err.message
+  });
+}
+
 };
 
 
@@ -197,3 +202,14 @@ exports.deleteListing = async (req, res) => {
     res.status(500).json({ success: false });
   }
 };
+
+exports.getMyListings = async (req, res) => {
+  const listings = await Listing.find({ owner: req.user._id });
+
+  res.status(200).json({
+    success: true,
+    count: listings.length,
+    data: listings
+  });
+};
+

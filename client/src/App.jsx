@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import { Navigate } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
@@ -14,6 +15,10 @@ import CreateBooking from "./pages/CreateBooking";
 
 import MyBookings from "./pages/MyBookings";
 import HostBookings from "./pages/HostBookings";
+import BookingSuccess from "./pages/BookingSuccess";
+import Profile from "./pages/Profile";
+
+
 
 function App() {
   return (
@@ -27,6 +32,9 @@ function App() {
           {/* Main content area */}
           <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
             <Routes>
+              <Route path="/" element={<Navigate to="/listings" replace />} />
+              <Route path="/listings" element={<Listings />} />
+
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
 
@@ -88,6 +96,19 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
+              <Route path="/booking-success" element={<BookingSuccess />} />
+
+              <Route
+  path="/profile"
+  element={
+    <ProtectedRoute>
+      <Profile />
+    </ProtectedRoute>
+  }
+/>
+
+                
             </Routes>
           </main>
         </div>

@@ -1,37 +1,42 @@
-const express = require("express");
+import express from "express";
+import {
+  createCheckoutSession,
+  getMyBookings,
+  getHostBookings,
+  cancelBooking
+} from "../controllers/booking.controller.js";
+
+import { protect } from "../middlewares/auth.middleware.js";
+import wrapAsync from "../utils/wrapAsync.js";
+
 const router = express.Router({ mergeParams: true });
-
-const bookingController = require("../controllers/booking.controller");
-const { protect } = require("../middlewares/auth.middleware");
-const wrapAsync = require("../utils/wrapAsync");
-
-
-// Create booking for a listing
-router.post(
-  "/:listingId",
-  protect,
-  wrapAsync(bookingController.createBooking)
-);
 
 // My bookings
 router.get(
   "/my",
   protect,
-  wrapAsync(bookingController.getMyBookings)
+  wrapAsync(getMyBookings)
 );
 
 // Host bookings
 router.get(
   "/manage",
   protect,
-  wrapAsync(bookingController.getHostBookings)
+  wrapAsync(getHostBookings)
 );
 
-// Cancel
+// Cancel booking
 router.patch(
   "/:bookingId/cancel",
   protect,
-  wrapAsync(bookingController.cancelBooking)
+  wrapAsync(cancelBooking)
 );
 
-module.exports = router;
+// Create Stripe checkout session
+router.post(
+  "/checkout/:listingId",
+  protect,
+  createCheckoutSession
+);
+
+export default router;
