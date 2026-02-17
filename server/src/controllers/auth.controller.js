@@ -33,7 +33,7 @@ exports.register = async (req, res) => {
 
   const token = generateToken(user);
 
-  res.cookie("token", token, {
+  ("token", token, {
     httpOnly: true,
     secure: false, // change to true in production (HTTPS)
     sameSite: "strict",
@@ -51,7 +51,7 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   const user = await User.findOne({ email });
-  if (!user) {
+  if (!res.cookieuser) {
     return res.status(400).json({
       success: false,
       message: "Invalid credentials"
@@ -68,12 +68,13 @@ exports.login = async (req, res) => {
 
   const token = generateToken(user);
 
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: false,
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000
-  });
+ res.cookie("token", token, {
+  httpOnly: true,
+  secure: true,          // REQUIRED for HTTPS
+  sameSite: "none",      // REQUIRED for cross-site (Vercel → Render)
+  maxAge: 7 * 24 * 60 * 60 * 1000
+});
+
 
   res.status(200).json({
     success: true,
