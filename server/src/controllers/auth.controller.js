@@ -33,12 +33,13 @@ exports.register = async (req, res) => {
 
   const token = generateToken(user);
 
-  ("token", token, {
-    httpOnly: true,
-    secure: false, // change to true in production (HTTPS)
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000
-  });
+  res.cookie("token", token, {
+  httpOnly: true,
+  secure: true,
+  sameSite: "none",
+  maxAge: 7 * 24 * 60 * 60 * 1000
+});
+
 
   res.status(201).json({
     success: true,
@@ -51,7 +52,8 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   const user = await User.findOne({ email });
-  if (!res.cookieuser) {
+
+  if (!user) {
     return res.status(400).json({
       success: false,
       message: "Invalid credentials"
@@ -59,6 +61,7 @@ exports.login = async (req, res) => {
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
+
   if (!isMatch) {
     return res.status(400).json({
       success: false,
@@ -68,19 +71,19 @@ exports.login = async (req, res) => {
 
   const token = generateToken(user);
 
- res.cookie("token", token, {
-  httpOnly: true,
-  secure: true,          // REQUIRED for HTTPS
-  sameSite: "none",      // REQUIRED for cross-site (Vercel → Render)
-  maxAge: 7 * 24 * 60 * 60 * 1000
-});
-
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
 
   res.status(200).json({
     success: true,
     message: "Login successful"
   });
 };
+
 
 // LOGOUT
 exports.logout = (req, res) => {
