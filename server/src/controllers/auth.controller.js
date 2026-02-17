@@ -32,13 +32,13 @@ exports.register = async (req, res) => {
   });
 
   const token = generateToken(user);
-
-  res.cookie("token", token, {
+res.cookie("token", token, {
   httpOnly: true,
-  secure: true,
-  sameSite: "none",
+  secure: true,          // MUST be true on HTTPS
+  sameSite: "none",      // MUST be none for cross-site
   maxAge: 7 * 24 * 60 * 60 * 1000
 });
+
 
 
   res.status(201).json({
@@ -72,11 +72,12 @@ exports.login = async (req, res) => {
   const token = generateToken(user);
 
   res.cookie("token", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    maxAge: 7 * 24 * 60 * 60 * 1000
-  });
+  httpOnly: true,
+  secure: true,          // MUST be true on HTTPS
+  sameSite: "none",      // MUST be none for cross-site
+  maxAge: 7 * 24 * 60 * 60 * 1000
+});
+
 
   res.status(200).json({
     success: true,
