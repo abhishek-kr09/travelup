@@ -31,68 +31,73 @@ export default function Register() {
       await register(form);
       navigate("/dashboard");
     } catch (err) {
-      setError(
-        err?.response?.data?.message || "Registration failed"
-      );
+      setError(err?.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: "400px", margin: "50px auto" }}>
-      <h2>Create Account</h2>
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        <form className="bg-white/95 backdrop-blur-md p-8 rounded-2xl shadow-2xl space-y-5" onSubmit={handleSubmit}>
+          <h2 className="text-3xl font-bold text-center text-gray-800">
+            Create Account 🚀
+          </h2>
 
-      {error && (
-        <p style={{ color: "red" }}>
-          {error}
-        </p>
-      )}
+          {error && (
+            <p className="text-red-500 text-sm text-center">{error}</p>
+          )}
 
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          name="username"
-          placeholder="Username"
-          value={form.username}
-          onChange={handleChange}
-          required
-          style={{ display: "block", width: "100%", marginBottom: "10px" }}
-        />
+          <input
+            type="text"
+            name="username"
+            placeholder="Username"
+            required
+            value={form.username}
+            onChange={handleChange}
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+          />
 
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={handleChange}
-          required
-          style={{ display: "block", width: "100%", marginBottom: "10px" }}
-        />
+          <input
+            type="email"
+            name="email"
+            placeholder="Email address"
+            required
+            value={form.email}
+            onChange={handleChange}
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+          />
 
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={handleChange}
-          required
-          style={{ display: "block", width: "100%", marginBottom: "10px" }}
-        />
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            required
+            value={form.password}
+            onChange={handleChange}
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+          />
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ width: "100%", padding: "8px" }}
-        >
-          {loading ? "Creating..." : "Register"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-60"
+          >
+            {loading ? "Creating..." : "Register"}
+          </button>
 
-      <p style={{ marginTop: "15px" }}>
-        Already have an account?{" "}
-        <Link to="/login">Login</Link>
-      </p>
+          <p className="text-center text-sm text-gray-600">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="text-indigo-600 font-semibold hover:underline"
+            >
+              Login
+            </Link>
+          </p>
+        </form>
+      </div>
     </div>
   );
 }
