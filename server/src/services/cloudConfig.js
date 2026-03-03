@@ -8,12 +8,13 @@ cloudinary.config({
 });
 
 const storage = new CloudinaryStorage({
-  cloudinary,
+  cloudinary: cloudinary,
   params: {
     folder: "Travelup",
-    allowed_formats: ["png", "jpg", "jpeg"]
-  }
+    allowed_formats: ["png", "jpg", "jpeg", "webp", "avif"], 
+  },
 });
+
 
 module.exports = {
   cloudinary,
