@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import toast from "react-hot-toast";
 
 export default function CreateListing() {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ export default function CreateListing() {
 
       navigate("/listings");
     } catch (err) {
-      alert("Failed to create listing");
+      toast.error(err?.response?.data?.message || "Failed to create listing");
     }
   };
 

@@ -42,7 +42,7 @@ console.log("API response:", res.data);
       fetchBookings();
     } catch (err) {
       console.error("Cancel failed:", err);
-      alert("Cancel failed");
+      toast.error(err?.response?.data?.message || "Cancel failed");
     }
   };
 

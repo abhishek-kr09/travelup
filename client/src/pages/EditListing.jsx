@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import toast from "react-hot-toast";
 
 export default function EditListing() {
   const { id } = useParams();
@@ -72,7 +73,7 @@ export default function EditListing() {
       navigate(`/listings/${id}`);
     } catch (err) {
       console.error("Update error:", err.response?.data || err.message);
-      alert("Update failed");
+      toast.error(err?.response?.data?.message || "Failed to edit");
     }
   };
 

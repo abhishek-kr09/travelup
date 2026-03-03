@@ -30,6 +30,10 @@ export default function Register() {
     try {
       await register(form);
       navigate("/dashboard");
+
+      setTimeout(() => {
+        toast.success("Welcome ! 🎉");
+      }, 0);
     } catch (err) {
       setError(err?.response?.data?.message || "Registration failed");
     } finally {

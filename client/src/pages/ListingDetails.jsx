@@ -41,7 +41,7 @@ export default function ListingDetails() {
       navigate("/listings");
     } catch (error) {
       console.error("Delete failed:", error);
-      alert("Delete failed");
+      toast.error(err?.response?.data?.message || "failed to delete listing");
     }
   };
 

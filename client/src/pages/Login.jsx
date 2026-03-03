@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import toast from "react-hot-toast";
 
 export default function Login() {
   const { login } = useAuth();
@@ -18,9 +19,15 @@ export default function Login() {
 
     try {
       await login({ email, password });
+
       navigate(from, { replace: true });
+
+      // fire toast after navigation tick
+      setTimeout(() => {
+        toast.success("Welcome back! 🎉");
+      }, 0);
     } catch (err) {
-      alert("Login failed");
+      toast.error(err?.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }

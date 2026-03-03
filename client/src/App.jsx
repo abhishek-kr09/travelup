@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { Navigate } from "react-router-dom";
@@ -10,15 +11,13 @@ import Dashboard from "./pages/Dashboard";
 import Listings from "./pages/Listings";
 import CreateListing from "./pages/CreateListing";
 import ListingDetails from "./pages/ListingDetails";
-import EditListing from "./pages/EditListing"; // 👈 import your EditListing
+import EditListing from "./pages/EditListing";
 import CreateBooking from "./pages/CreateBooking";
 
 import MyBookings from "./pages/MyBookings";
 import HostBookings from "./pages/HostBookings";
 import BookingSuccess from "./pages/BookingSuccess";
 import Profile from "./pages/Profile";
-
-
 
 function App() {
   return (
@@ -100,17 +99,27 @@ function App() {
               <Route path="/booking-success" element={<BookingSuccess />} />
 
               <Route
-  path="/profile"
-  element={
-    <ProtectedRoute>
-      <Profile />
-    </ProtectedRoute>
-  }
-/>
-
-                
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
             </Routes>
           </main>
+
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                borderRadius: "10px",
+                background: "#333",
+                color: "#fff",
+              },
+            }}
+          />
         </div>
       </BrowserRouter>
     </AuthProvider>

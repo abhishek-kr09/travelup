@@ -30,7 +30,7 @@ export default function ReviewForm({ listingId, onReviewAdded }) {
       onReviewAdded(); // Refresh reviews
     } catch (err) {
       console.error("Review error:", err);
-      alert("Failed to submit review");
+      toast.error(err?.response?.data?.message || "Failed to submit");
     } finally {
       setLoading(false);
     }
