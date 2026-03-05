@@ -21,7 +21,7 @@ export default function ReviewForm({ listingId, onReviewAdded }) {
 
       await API.post(`/listings/${listingId}/reviews`, {
         rating,
-        comment
+        comment,
       });
 
       setRating(0);
@@ -41,10 +41,9 @@ export default function ReviewForm({ listingId, onReviewAdded }) {
       <h3 className="font-semibold mb-4">Leave a review</h3>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-
         {/* Stars */}
         <div className="flex gap-2 text-2xl cursor-pointer">
-          {[1,2,3,4,5].map((star) => (
+          {[1, 2, 3, 4, 5].map((star) => (
             <span
               key={star}
               onClick={() => setRating(star)}
@@ -69,7 +68,6 @@ export default function ReviewForm({ listingId, onReviewAdded }) {
         >
           {loading ? "Submitting..." : "Submit"}
         </button>
-
       </form>
     </div>
   );

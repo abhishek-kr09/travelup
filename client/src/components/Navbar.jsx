@@ -46,8 +46,6 @@ export default function Navbar() {
               </Link>
 
               <button onClick={handleLogout}>Logout</button>
-
-              <ThemeToggle />
             </>
           )}
 
@@ -62,6 +60,8 @@ export default function Navbar() {
               </Link>
             </>
           )}
+
+          <ThemeToggle />
         </div>
       </div>
     </nav>

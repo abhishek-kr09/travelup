@@ -14,14 +14,21 @@ export default function ReviewsSection({ listingId, listingOwnerId, user }) {
     }
   };
 
+  const handleDelete = async (reviewId) => {
+    try {
+      await API.delete(`/listings/${listingId}/reviews/${reviewId}`);
+      fetchReviews();
+    } catch (err) {
+      console.error("Delete error:", err);
+    }
+  };
+
   useEffect(() => {
     fetchReviews();
   }, [listingId]);
 
   const isOwner =
-    user &&
-    listingOwnerId &&
-    user._id === listingOwnerId.toString();
+    user && listingOwnerId && user._id === listingOwnerId.toString();
 
   return (
     <div>
@@ -29,10 +36,7 @@ export default function ReviewsSection({ listingId, listingOwnerId, user }) {
 
       {/* Hide review form for owner */}
       {!isOwner && user && (
-        <ReviewForm
-          listingId={listingId}
-          onReviewAdded={fetchReviews}
-        />
+        <ReviewForm listingId={listingId} onReviewAdded={fetchReviews} />
       )}
 
       {reviews.length === 0 && (
@@ -40,20 +44,35 @@ export default function ReviewsSection({ listingId, listingOwnerId, user }) {
       )}
 
       <div className="space-y-6 mt-8">
-        {reviews.map((review) => (
-          <div
-            key={review._id}
-            className="border rounded-xl p-4"
-          >
-            <div className="flex justify-between">
-              <span>{review.author?.username}</span>
-              <span className="text-yellow-500">
-                {"★".repeat(review.rating)}
-              </span>
+        {reviews.map((review) => {
+          const isReviewAuthor =
+            user && review.author && user._id === review.author._id;
+
+          return (
+            <div key={review._id} className="border rounded-xl p-4">
+              <div className="flex justify-between items-center">
+                <span>{review.author?.username}</span>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-yellow-500">
+                    {"★".repeat(review.rating)}
+                  </span>
+
+                  {(isReviewAuthor || isOwner) && (
+                    <button
+                      onClick={() => handleDelete(review._id)}
+                      className="text-red-500 text-sm hover:underline"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <p className="mt-2">{review.comment}</p>
             </div>
-            <p className="mt-2">{review.comment}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
