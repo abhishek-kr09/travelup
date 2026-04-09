@@ -34,16 +34,16 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
         <form
           onSubmit={handleSubmit}
-          className="bg-white/95 backdrop-blur-md p-8 rounded-2xl shadow-2xl space-y-5"
+          className="bg-stone-50 dark:bg-zinc-900 border border-stone-300 dark:border-zinc-800 backdrop-blur-md p-8 rounded-2xl shadow-[0_16px_36px_-24px_rgba(17,24,39,0.6)] space-y-5"
         >
-          <h2 className="text-3xl font-bold text-center text-gray-800">
+          <h2 className="text-3xl font-bold text-center text-zinc-900 dark:text-zinc-100">
             Welcome Back 👋
           </h2>
-          <p className="text-center text-gray-500 text-sm">
+          <p className="text-center text-zinc-600 dark:text-zinc-400 text-sm">
             Login to continue to TravelUp
           </p>
 
@@ -51,7 +51,7 @@ export default function Login() {
             type="email"
             placeholder="Email address"
             required
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            className="w-full px-4 py-3 border border-stone-300 dark:border-zinc-700 bg-stone-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-300 transition"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -60,23 +60,23 @@ export default function Login() {
             type="password"
             placeholder="Password"
             required
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            className="w-full px-4 py-3 border border-stone-300 dark:border-zinc-700 bg-stone-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-300 transition"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
 
           <button
             disabled={loading}
-            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-60"
+            className="w-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-60"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
 
-          <p className="text-center text-sm text-gray-600">
+          <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
             Don’t have an account?{" "}
             <Link
               to="/register"
-              className="text-indigo-600 font-semibold hover:underline"
+              className="text-zinc-900 dark:text-zinc-100 font-semibold hover:underline"
             >
               Register
             </Link>

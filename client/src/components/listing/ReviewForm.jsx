@@ -1,6 +1,7 @@
 import { useState } from "react";
 import API from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
+import toast from "react-hot-toast";
 
 export default function ReviewForm({ listingId, onReviewAdded }) {
   const { user } = useAuth();
@@ -14,7 +15,10 @@ export default function ReviewForm({ listingId, onReviewAdded }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!rating || !comment) return;
+    if (!rating || !comment) {
+      toast.error("Please add rating and comment");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -28,6 +32,7 @@ export default function ReviewForm({ listingId, onReviewAdded }) {
       setComment("");
 
       onReviewAdded(); // Refresh reviews
+      toast.success("Review submitted");
     } catch (err) {
       console.error("Review error:", err);
       toast.error(err?.response?.data?.message || "Failed to submit");
@@ -37,7 +42,7 @@ export default function ReviewForm({ listingId, onReviewAdded }) {
   };
 
   return (
-    <div className="border rounded-xl p-6 bg-gray-50 dark:bg-zinc-900">
+    <div className="surface-card p-6">
       <h3 className="font-semibold mb-4">Leave a review</h3>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -56,7 +61,7 @@ export default function ReviewForm({ listingId, onReviewAdded }) {
 
         <textarea
           placeholder="Write your experience..."
-          className="w-full border rounded-lg p-3 dark:bg-zinc-800"
+          className="w-full border border-stone-300 dark:border-zinc-700 rounded-lg p-3 bg-stone-100 dark:bg-zinc-800"
           value={comment}
           onChange={(e) => setComment(e.target.value)}
         />
@@ -64,7 +69,7 @@ export default function ReviewForm({ listingId, onReviewAdded }) {
         <button
           type="submit"
           disabled={loading}
-          className="bg-black text-white px-6 py-2 rounded-lg hover:opacity-90 transition"
+          className="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-6 py-2 rounded-lg hover:opacity-90 transition"
         >
           {loading ? "Submitting..." : "Submit"}
         </button>

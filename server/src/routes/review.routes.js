@@ -1,9 +1,10 @@
-const express = require("express");
+import express from "express";
 const router = express.Router({ mergeParams: true });
 
-const reviewController = require("../controllers/review.controller");
-const { protect } = require("../middlewares/auth.middleware");
-const wrapAsync = require("../utils/wrapAsync");
+// 1. Add .js extensions and use ESM imports
+import * as reviewController from "../controllers/review.controller.js";
+import { protect } from "../middlewares/auth.middleware.js";
+import wrapAsync from "../utils/wrapAsync.js";
 
 // POST /api/listings/:id/reviews
 router.post(
@@ -25,4 +26,5 @@ router.delete(
   wrapAsync(reviewController.deleteReview)
 );
 
-module.exports = router;
+// 2. Use export default
+export default router;

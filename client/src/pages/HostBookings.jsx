@@ -30,7 +30,7 @@ export default function HostBookings() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12 space-y-12">
+    <div className="max-w-6xl mx-auto px-1 sm:px-3 py-8 sm:py-12 space-y-10">
       <h1 className="text-3xl font-semibold">Manage Bookings</h1>
 
       {/* 🔥 Revenue Summary */}
@@ -42,7 +42,7 @@ export default function HostBookings() {
       {/* 🔥 Confirmed Section */}
       <Section title="Confirmed Bookings">
         {confirmedBookings.length === 0 && (
-          <p className="text-gray-500">No confirmed bookings yet.</p>
+          <p className="text-zinc-500">No confirmed bookings yet.</p>
         )}
 
         {confirmedBookings.map((booking) => (
@@ -61,7 +61,7 @@ export default function HostBookings() {
       {/* 🔥 Cancelled Section */}
       <Section title="Cancelled Bookings">
         {cancelledBookings.length === 0 && (
-          <p className="text-gray-500">No cancelled bookings.</p>
+          <p className="text-zinc-500">No cancelled bookings.</p>
         )}
 
         {cancelledBookings.map((booking) => (
@@ -84,8 +84,8 @@ export default function HostBookings() {
 
 function Card({ title, value }) {
   return (
-    <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow">
-      <p className="text-gray-500 text-sm">{title}</p>
+    <div className="surface-card p-6">
+      <p className="text-zinc-500 text-sm">{title}</p>
       <p className="text-2xl font-semibold">{value}</p>
     </div>
   );
@@ -102,10 +102,10 @@ function Section({ title, children }) {
 
 function BookingCard({ booking, badge }) {
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow p-6 flex justify-between items-center">
+    <div className="surface-card p-4 sm:p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
       <div>
         <h3 className="font-semibold">{booking.listing?.title}</h3>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
           Guest: {booking.user?.username}
         </p>
         <p className="text-sm">

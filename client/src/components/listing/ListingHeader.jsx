@@ -9,8 +9,8 @@ export default function ListingHeader({ listing, user, onDelete }) {
     user._id === listing.owner._id;
 
   return (
-    <div className="flex justify-between items-start mb-8">
-      <h1 className="text-3xl font-semibold">
+    <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4 mb-8">
+      <h1 className="text-3xl font-semibold leading-tight">
         {listing.title}
       </h1>
 
@@ -18,7 +18,7 @@ export default function ListingHeader({ listing, user, onDelete }) {
         <div className="flex gap-3">
           <button
             onClick={() => navigate(`/listings/${listing._id}/edit`)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:opacity-90 transition"
+            className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg hover:opacity-90 transition"
           >
             Edit
           </button>

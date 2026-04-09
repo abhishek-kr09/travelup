@@ -1,5 +1,5 @@
-// utils/geocode.js
-const mbxGeocoding = require('@mapbox/mapbox-sdk/services/geocoding');
+import mbxGeocoding from '@mapbox/mapbox-sdk/services/geocoding.js';
+
 const mapToken = process.env.MAP_TOKEN;
 const geocodingClient = mbxGeocoding({ accessToken: mapToken });
 
@@ -25,4 +25,5 @@ async function geocodeLocation(location, country) {
   }
 }
 
-module.exports = geocodeLocation;
+// Use export default to match your controller's import
+export default geocodeLocation;

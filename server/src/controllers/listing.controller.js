@@ -1,11 +1,11 @@
-const Listing = require("../models/listing.model");
-const geocodeLocation = require("../utils/geocode");
-const { cloudinary } = require("../services/cloudConfig");
+import Listing from "../models/listing.model.js";
+import geocodeLocation from "../utils/geocode.js";
+import { cloudinary } from "../services/cloudConfig.js";
 
 /* =========================
    GET ALL
 ========================= */
-exports.getAllListings = async (req, res) => {
+export const getAllListings = async (req, res) => {
   try {
     const { sort } = req.query;
 
@@ -20,19 +20,16 @@ exports.getAllListings = async (req, res) => {
       count: listings.length,
       data: listings,
     });
-
   } catch (err) {
     console.error("GET ALL ERROR:", err);
     res.status(500).json({ success: false });
   }
 };
 
-
-
 /* =========================
    GET ONE
 ========================= */
-exports.getListingById = async (req, res) => {
+export const getListingById = async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id)
       .populate({
@@ -61,7 +58,7 @@ exports.getListingById = async (req, res) => {
 /* =========================
    CREATE
 ========================= */
-exports.createListing = async (req, res) => {
+export const createListing = async (req, res) => {
   try {
     const { location, country } = req.body;
 
@@ -83,7 +80,7 @@ exports.createListing = async (req, res) => {
     if (req.file) {
       newListing.image = {
         url: req.file.path,
-        filename: req.file.filename, // already Travelup/xxxx
+        filename: req.file.filename,
       };
     }
 
@@ -102,10 +99,9 @@ exports.createListing = async (req, res) => {
 /* =========================
    UPDATE
 ========================= */
-exports.updateListing = async (req, res) => {
+export const updateListing = async (req, res) => {
   try {
     const { id } = req.params;
-
     const listing = await Listing.findById(id);
 
     if (!listing) {
@@ -122,7 +118,6 @@ exports.updateListing = async (req, res) => {
     listing.country = req.body.country ?? listing.country;
     listing.category = req.body.category ?? listing.category;
 
-    // Handle image safely
     if (req.file) {
       if (listing.image?.filename) {
         try {
@@ -144,27 +139,19 @@ exports.updateListing = async (req, res) => {
       success: true,
       data: listing,
     });
-
   } catch (err) {
-  console.error("UPDATE ERROR:", err);
-  console.error("STACK:", err.stack);
-
-  res.status(500).json({
-    success: false,
-    message: err.message
-  });
-}
-
+    console.error("UPDATE ERROR:", err);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
 };
-
-
-
-
 
 /* =========================
    DELETE
 ========================= */
-exports.deleteListing = async (req, res) => {
+export const deleteListing = async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id);
 
@@ -175,14 +162,8 @@ exports.deleteListing = async (req, res) => {
       });
     }
 
-    // 🔥 IMPORTANT: delete image FIRST
     if (listing.image?.filename) {
-      const result = await cloudinary.uploader.destroy(
-        listing.image.filename
-      );
-
-      console.log("Cloudinary delete result:", result);
-
+      const result = await cloudinary.uploader.destroy(listing.image.filename);
       if (result.result !== "ok" && result.result !== "not found") {
         return res.status(500).json({
           success: false,
@@ -203,13 +184,11 @@ exports.deleteListing = async (req, res) => {
   }
 };
 
-exports.getMyListings = async (req, res) => {
+export const getMyListings = async (req, res) => {
   const listings = await Listing.find({ owner: req.user._id });
-
   res.status(200).json({
     success: true,
     count: listings.length,
-    data: listings
+    data: listings,
   });
 };
-

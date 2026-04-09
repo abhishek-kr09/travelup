@@ -2,6 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  @apply bg-stone-100 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100;
+}
+
+@keyframes cardReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.listing-card-reveal {
+  opacity: 0;
+  animation: cardReveal 520ms ease-out forwards;
+}
+
+.surface-card {
+  background: #fafaf9;
+  border: 1px solid rgba(214, 211, 209, 0.8);
+  border-radius: 1rem;
+  box-shadow: 0 12px 32px -24px rgba(15, 23, 42, 0.75);
+}
+
+.dark .surface-card {
+  background: #18181b;
+  border-color: rgba(63, 63, 70, 0.9);
+}
+
 .input {
-  @apply w-full px-4 py-2 border rounded-lg dark:bg-zinc-800 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-black transition;
+  @apply w-full px-4 py-3 border border-stone-300 dark:border-zinc-700 rounded-lg bg-stone-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-300 transition;
 }

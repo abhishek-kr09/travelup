@@ -29,7 +29,7 @@ export default function MapSection({ geometry }) {
       <MapContainer
         center={[lat, lng]}
         zoom={12}
-        className="h-[400px] rounded-2xl"
+        className="h-[280px] sm:h-[360px] md:h-[400px] rounded-2xl border border-stone-300 dark:border-zinc-800"
       >
         <TileLayer
           attribution="&copy; OpenStreetMap contributors"

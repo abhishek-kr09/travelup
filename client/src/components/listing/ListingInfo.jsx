@@ -1,7 +1,7 @@
 export default function ListingInfo({ listing }) {
   return (
-    <div className="space-y-4">
-      <p className="text-gray-600 dark:text-gray-300">
+    <div className="surface-card p-5 sm:p-6 space-y-4">
+      <p className="text-zinc-600 dark:text-zinc-300 leading-relaxed">
         {listing.description}
       </p>
 
@@ -9,7 +9,7 @@ export default function ListingInfo({ listing }) {
         ₹{listing.price} / night
       </p>
 
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-zinc-500 dark:text-zinc-400">
         {listing.location}, {listing.country}
       </p>
     </div>

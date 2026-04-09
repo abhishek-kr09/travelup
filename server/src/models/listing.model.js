@@ -1,6 +1,7 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+import Review from "./review.model.js"; // Note: Added .js extension
+
 const Schema = mongoose.Schema;
-const Review = require("./review.model");
 
 const CATEGORY_OPTIONS = [
   "Rooms",
@@ -14,65 +15,28 @@ const CATEGORY_OPTIONS = [
 
 const listingSchema = new Schema(
   {
-    title: {
-      type: String,
-      required: true
-    },
-
+    title: { type: String, required: true },
     description: String,
-
     image: {
       url: {
         type: String,
-        default:
-          "https://images.unsplash.com/photo-1507525428034-b723cf961d3e"
+        default: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e"
       },
       filename: String
     },
-
-    price: {
-      type: Number,
-      required: true
-    },
-
-    location: {
-      type: String,
-      required: true
-    },
-
-    country: {
-      type: String,
-      required: true
-    },
-
+    price: { type: Number, required: true },
+    location: { type: String, required: true },
+    country: { type: String, required: true },
     category: {
       type: String,
       enum: CATEGORY_OPTIONS,
       default: "Rooms"
     },
-
-    owner: {
-      type: Schema.Types.ObjectId,
-      ref: "User"
-    },
-
-    reviews: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Review"
-      }
-    ],
-
+    owner: { type: Schema.Types.ObjectId, ref: "User" },
+    reviews: [{ type: Schema.Types.ObjectId, ref: "Review" }],
     geometry: {
-      type: {
-        type: String,
-        enum: ["Point"],
-        required: true
-      },
-      coordinates: {
-        type: [Number],
-        required: true
-      }
+      type: { type: String, enum: ["Point"], required: true },
+      coordinates: { type: [Number], required: true }
     }
   },
   { timestamps: true }
@@ -85,4 +49,7 @@ listingSchema.post("findOneAndDelete", async function (listing) {
   }
 });
 
-module.exports = mongoose.model("Listing", listingSchema);
+const Listing = mongoose.model("Listing", listingSchema);
+
+// Change this line:
+export default Listing; 

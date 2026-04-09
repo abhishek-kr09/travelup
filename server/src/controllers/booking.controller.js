@@ -1,133 +1,166 @@
 import Stripe from "stripe";
+import mongoose from "mongoose";
 import Booking from "../models/booking.model.js";
 import Listing from "../models/listing.model.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// ------------------------------
-// GET MY BOOKINGS
-// ------------------------------
 export const getMyBookings = async (req, res) => {
   const bookings = await Booking.find({ user: req.user._id })
     .populate("listing", "title location price image")
     .sort({ createdAt: -1 });
-
-  res.status(200).json({
-    success: true,
-    count: bookings.length,
-    data: bookings,
-  });
+  res.status(200).json({ success: true, count: bookings.length, data: bookings });
 };
 
-// ------------------------------
-// GET HOST BOOKINGS
-// ------------------------------
 export const getHostBookings = async (req, res) => {
   const listings = await Listing.find({ owner: req.user._id }).select("_id");
   const listingIds = listings.map(l => l._id);
 
-  const bookings = await Booking.find({
-    listing: { $in: listingIds }
-  })
+  const bookings = await Booking.find({ listing: { $in: listingIds } })
     .populate("listing", "title location")
     .populate("user", "username email")
     .sort({ createdAt: -1 });
 
-  const confirmedBookings = bookings.filter(
-    b => b.status === "confirmed"
+  const confirmed = bookings.filter(b => b.status === "confirmed");
+  const cancelled = bookings.filter(
+    b => b.status === "cancelled" || b.status === "refunded"
   );
-
-  const cancelledBookings = bookings.filter(
-    b => b.status === "cancelled"
+  const totalRevenue = Number(
+    confirmed.reduce((sum, b) => sum + (b.total || 0), 0).toFixed(2)
   );
-
-  const totalRevenue = confirmedBookings.reduce(
-    (sum, b) => sum + (b.total || 0),
-    0
-  );
-
-  const formattedRevenue = Number(totalRevenue.toFixed(2));
 
   res.status(200).json({
     success: true,
     data: {
-      summary: {
-       totalRevenue: formattedRevenue,
-        totalBookings: confirmedBookings.length
-      },
-      confirmedBookings,
-      cancelledBookings
-    }
+      summary: { totalRevenue, totalBookings: confirmed.length },
+      confirmedBookings: confirmed,
+      cancelledBookings: cancelled,
+    },
   });
 };
 
-
-// ------------------------------
-// CANCEL BOOKING
-// ------------------------------
 export const cancelBooking = async (req, res) => {
   const { bookingId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+    return res.status(400).json({ success: false, message: "Invalid booking id" });
+  }
+
   const booking = await Booking.findById(bookingId);
 
-  if (!booking) {
-    return res.status(404).json({
-      success: false,
-      message: "Booking not found",
-    });
+  if (!booking)
+    return res.status(404).json({ success: false, message: "Booking not found" });
+
+  if (booking.user.toString() !== req.user._id.toString())
+    return res.status(403).json({ success: false, message: "Not authorized" });
+
+  if (booking.status === "cancelled")
+    return res.status(400).json({ success: false, message: "Already cancelled" });
+
+  if (booking.status === "refunded")
+    return res.status(400).json({ success: false, message: "Already refunded" });
+
+  const now = new Date();
+  const daysUntilCheckIn = (new Date(booking.checkIn) - now) / (1000 * 60 * 60 * 24);
+
+  let refundAmount = 0;
+  if (daysUntilCheckIn >= 7) refundAmount = booking.total;
+  else if (daysUntilCheckIn >= 2) refundAmount = booking.subtotal;
+
+  if (refundAmount > 0 && booking.paymentIntentId) {
+    try {
+      await stripe.refunds.create({
+        payment_intent: booking.paymentIntentId,
+        amount: Math.round(refundAmount * 100),
+      });
+      booking.status = "refunded";
+      booking.refundAmount = refundAmount;
+    } catch (err) {
+      console.error("Stripe refund failed:", err.message);
+      return res.status(500).json({ success: false, message: "Refund failed" });
+    }
+  } else {
+    booking.status = "cancelled";
   }
 
-  if (booking.user.toString() !== req.user._id.toString()) {
-    return res.status(403).json({
-      success: false,
-      message: "Not authorized",
-    });
-  }
-
-  booking.status = "cancelled";
+  booking.cancellationReason = req.body.reason || "User requested";
   await booking.save();
 
   res.status(200).json({
     success: true,
-    message: "Booking cancelled successfully",
+    message: refundAmount > 0
+      ? `Cancelled. Refund of ₹${refundAmount} initiated.`
+      : "Cancelled. No refund applicable.",
+    refundAmount,
   });
 };
 
-// ------------------------------
-// CREATE CHECKOUT SESSION
-// ------------------------------
 export const createCheckoutSession = async (req, res) => {
   try {
     const { listingId } = req.params;
     const { checkIn, checkOut, guests } = req.body;
 
-    const listing = await Listing.findById(listingId);
-    if (!listing) {
-      return res.status(404).json({ message: "Listing not found" });
+    if (!mongoose.Types.ObjectId.isValid(listingId)) {
+      return res.status(400).json({ message: "Invalid listing id" });
     }
+
+    const guestsCount = Number(guests);
+    if (!Number.isInteger(guestsCount) || guestsCount < 1) {
+      return res.status(400).json({ message: "Guests must be a positive integer" });
+    }
+
+    const listing = await Listing.findById(listingId);
+    if (!listing)
+      return res.status(404).json({ message: "Listing not found" });
+
+    if (listing.owner.toString() === req.user._id.toString())
+      return res.status(403).json({ message: "You cannot book your own listing" });
 
     const start = new Date(checkIn);
     const end = new Date(checkOut);
+    const now = new Date();
 
-    if (start >= end) {
-      return res.status(400).json({ message: "Invalid dates" });
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return res.status(400).json({ message: "Invalid check-in/check-out date" });
     }
+
+    if (start < now.setHours(0, 0, 0, 0))
+      return res.status(400).json({ message: "Check-in cannot be in the past" });
+
+    if (start >= end)
+      return res.status(400).json({ message: "Check-out must be after check-in" });
 
     const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    if (nights <= 0) {
-      return res.status(400).json({ message: "Invalid stay duration" });
-    }
 
-    // Overlap check
+    if (listing.maxGuests && guestsCount > listing.maxGuests)
+      return res.status(400).json({ message: `Max ${listing.maxGuests} guests allowed` });
+
+    // Release stale pending reservations when webhook expiration is delayed/missed.
+    const pendingExpiryCutoff = new Date(Date.now() - 31 * 60 * 1000);
+    await Booking.updateMany(
+      {
+        listing: listingId,
+        status: "pending",
+        createdAt: { $lt: pendingExpiryCutoff },
+      },
+      {
+        status: "cancelled",
+        cancellationReason: "Payment session expired (auto cleanup)",
+      }
+    );
+
     const overlapping = await Booking.findOne({
       listing: listingId,
-      status: "confirmed",
       checkIn: { $lt: end },
       checkOut: { $gt: start },
+      $or: [
+        { status: "confirmed" },
+        { status: "pending", createdAt: { $gte: pendingExpiryCutoff } },
+      ],
     });
 
-    if (overlapping) {
-      return res.status(400).json({ message: "Dates already booked" });
-    }
+    if (overlapping)
+      return res.status(400).json({ message: "These dates are already booked" });
 
     const subtotal = nights * listing.price;
     const tax = Math.round(subtotal * 0.1);
@@ -136,32 +169,45 @@ export const createCheckoutSession = async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "inr",
-            product_data: {
-              name: listing.title,
-            },
-            unit_amount: total * 100,
-          },
-          quantity: 1,
+      line_items: [{
+        price_data: {
+          currency: "inr",
+          product_data: { name: listing.title },
+          unit_amount: total * 100,
         },
-      ],
+        quantity: 1,
+      }],
       metadata: {
         listingId: listingId.toString(),
         userId: req.user._id.toString(),
         checkIn: checkIn.toString(),
         checkOut: checkOut.toString(),
-        guests: guests.toString(),
+        guests: guestsCount.toString(),
         nights: nights.toString(),
         subtotal: subtotal.toString(),
         tax: tax.toString(),
         total: total.toString(),
         pricePerNight: listing.price.toString(),
       },
-      success_url: `${process.env.CLIENT_URL}/booking-success`,
+      // ✅ FIXED — Stripe fills in the real session ID on redirect
+      success_url: `${process.env.CLIENT_URL}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.CLIENT_URL}/booking-cancel`,
+      expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
+    });
+
+    await Booking.create({
+      listing: listingId,
+      user: req.user._id,
+      checkIn: start,
+      checkOut: end,
+      guests: guestsCount,
+      nights,
+      pricePerNight: listing.price,
+      subtotal,
+      tax,
+      total,
+      status: "pending",
+      stripeSessionId: session.id,
     });
 
     res.json({ url: session.url });
@@ -171,51 +217,56 @@ export const createCheckoutSession = async (req, res) => {
   }
 };
 
-// ------------------------------
-// STRIPE WEBHOOK
-// ------------------------------
 export const stripeWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
-
   let event;
 
   try {
     event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET,
+      req.body, sig, process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
-    console.error("Webhook signature verification failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
 
-    const { listingId, userId, checkIn, checkOut, guests, total } =
-      session.metadata;
-
     try {
-      await Booking.create({
-        listing: listingId,
-        user: userId,
-        checkIn,
-        checkOut,
-        guests: Number(guests),
-        nights: Number(session.metadata.nights),
-        pricePerNight: Number(session.metadata.pricePerNight),
-        subtotal: Number(session.metadata.subtotal),
-        tax: Number(session.metadata.tax),
-        total: Number(session.metadata.total),
-        status: "confirmed",
-        paymentIntentId: session.payment_intent,
-      });
+      // FIX B: match on stripeSessionId — reliable, no timezone drift
+      const existing = await Booking.findOneAndUpdate(
+        {
+          stripeSessionId: session.id,
+          status: "pending",
+        },
+        {
+          status: "confirmed",
+          paymentIntentId: session.payment_intent,
+        },
+        { returnDocument: "after" }
+      );
 
-      console.log("✅ Booking created after payment");
+      if (existing) {
+        console.log("✅ Booking confirmed:", existing._id);
+      } else {
+        console.error("❌ No pending booking for session:", session.id);
+      }
     } catch (err) {
-      console.error("Booking creation failed:", err);
+      if (err.code === 11000) {
+        console.log("⚠️ Duplicate webhook ignored");
+        return res.status(200).json({ received: true });
+      }
+      console.error("Booking confirmation failed:", err);
     }
+  }
+
+  if (event.type === "checkout.session.expired") {
+    const session = event.data.object;
+    await Booking.findOneAndUpdate(
+      { stripeSessionId: session.id, status: "pending" },
+      { status: "cancelled", cancellationReason: "Payment session expired" }
+    );
+    console.log("🕐 Pending booking released");
   }
 
   res.status(200).json({ received: true });

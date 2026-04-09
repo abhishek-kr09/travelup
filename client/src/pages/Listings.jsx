@@ -10,6 +10,7 @@ export default function Listings() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchListings();
@@ -18,81 +19,54 @@ export default function Listings() {
   const fetchListings = async () => {
     try {
       const res = await API.get("/listings");
-      setListings(res.data.data ||[]);
-
-      console.log("Listings API response:", res.data);
+      setListings(res.data.data || []);
+      // FIX: removed console.log — never leave these in production code
     } catch (err) {
-      console.error("Error fetching listings:", err);
+      setError("Failed to load listings. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔥 Derive filtered + sorted listings
   const filteredListings = useMemo(() => {
     let result = [...listings];
 
-    // Category filter
     if (activeCategory !== "All") {
-      result = result.filter(
-        (item) => item.category === activeCategory
-      );
+      result = result.filter((item) => item.category === activeCategory);
     }
 
-    // Search filter
     if (searchQuery) {
       const lower = searchQuery.toLowerCase();
       result = result.filter(
         (item) =>
-          item.title.toLowerCase().includes(lower) ||
-          item.location.toLowerCase().includes(lower)
+          item.title?.toLowerCase().includes(lower) ||
+          item.location?.toLowerCase().includes(lower)
       );
     }
 
-    // Sorting
-    if (sortOption === "price_asc") {
-      result.sort((a, b) => a.price - b.price);
-    }
-
-    if (sortOption === "price_desc") {
-      result.sort((a, b) => b.price - a.price);
-    }
+    if (sortOption === "price_asc") result.sort((a, b) => a.price - b.price);
+    if (sortOption === "price_desc") result.sort((a, b) => b.price - a.price);
 
     return result;
   }, [listings, activeCategory, searchQuery, sortOption]);
 
   return (
-    <div className="space-y-10">
-      
-      {/* HEADER */}
+    <div className="space-y-8 sm:space-y-10">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Explore stays
-        </h1>
-
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Explore stays</h1>
+          <p className="text-sm mt-1 text-zinc-600 dark:text-zinc-400">Find places that feel right for your next trip.</p>
+        </div>
         <SearchBar onSearch={setSearchQuery} />
       </div>
 
-      {/* CATEGORY */}
-      <CategoryFilter
-        active={activeCategory}
-        setActive={setActiveCategory}
-      />
+      <CategoryFilter active={activeCategory} setActive={setActiveCategory} />
 
-      {/* SORT */}
       <div className="flex justify-end">
         <select
           value={sortOption}
           onChange={(e) => setSortOption(e.target.value)}
-          className="
-            px-4 py-2 rounded-lg
-            border border-gray-300 dark:border-zinc-700
-            bg-white dark:bg-zinc-900
-            text-sm
-            focus:ring-2 focus:ring-black
-            outline-none
-            transition-all
-          "
+          className="px-4 py-2 rounded-lg border border-stone-300 dark:border-zinc-700 bg-stone-50 dark:bg-zinc-900 text-sm text-zinc-700 dark:text-zinc-200 focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-300 outline-none transition-all"
         >
           <option value="">Sort by</option>
           <option value="price_asc">Price: Low → High</option>
@@ -100,27 +74,18 @@ export default function Listings() {
         </select>
       </div>
 
-      {/* CONTENT */}
+      {error && (
+        <div className="text-center py-6 text-red-500 text-sm">{error}</div>
+      )}
+
       {loading ? (
-        <div className="text-center py-20 text-gray-500">
-          Loading listings...
-        </div>
+        <div className="text-center py-20 text-zinc-500">Loading listings...</div>
       ) : filteredListings.length === 0 ? (
-        <div className="text-center py-20 text-gray-500">
-          No listings found.
-        </div>
+        <div className="surface-card text-center py-16 px-4 text-zinc-500">No listings found.</div>
       ) : (
-        <div
-          className="
-            grid gap-8
-            sm:grid-cols-1
-            md:grid-cols-2
-            lg:grid-cols-3
-            xl:grid-cols-4
-          "
-        >
-          {filteredListings.map((listing) => (
-            <ListingCard key={listing._id} listing={listing} />
+        <div className="grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filteredListings.map((listing, index) => (
+            <ListingCard key={listing._id} listing={listing} index={index} />
           ))}
         </div>
       )}

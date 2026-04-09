@@ -1,9 +1,9 @@
-const jwt = require("jsonwebtoken");
-const User = require("../models/user.model");
-const Listing = require("../models/listing.model");
+import jwt from "jsonwebtoken";
+import User from "../models/user.model.js";
+import Listing from "../models/listing.model.js";
 
 // 🔐 Protect Route
-exports.protect = async (req, res, next) => {
+export const protect = async (req, res, next) => {
   try {
     const token = req.cookies.token;
 
@@ -15,7 +15,6 @@ exports.protect = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
     const user = await User.findById(decoded.id).select("-password");
 
     if (!user) {
@@ -37,10 +36,9 @@ exports.protect = async (req, res, next) => {
 };
 
 // 🔒 Check Ownership
-exports.isOwner = async (req, res, next) => {
+export const isOwner = async (req, res, next) => {
   try {
     const { id } = req.params;
-
     const listing = await Listing.findById(id);
 
     if (!listing) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../../api/axios";
 import ReviewForm from "./ReviewForm";
+import toast from "react-hot-toast";
 
 export default function ReviewsSection({ listingId, listingOwnerId, user }) {
   const [reviews, setReviews] = useState([]);
@@ -17,9 +18,11 @@ export default function ReviewsSection({ listingId, listingOwnerId, user }) {
   const handleDelete = async (reviewId) => {
     try {
       await API.delete(`/listings/${listingId}/reviews/${reviewId}`);
-      fetchReviews();
+      await fetchReviews();
+      toast.success("Review deleted");
     } catch (err) {
       console.error("Delete error:", err);
+      toast.error(err?.response?.data?.message || "Failed to delete review");
     }
   };
 
@@ -40,7 +43,7 @@ export default function ReviewsSection({ listingId, listingOwnerId, user }) {
       )}
 
       {reviews.length === 0 && (
-        <p className="text-gray-500 mt-4">No reviews yet.</p>
+        <p className="text-zinc-500 mt-4">No reviews yet.</p>
       )}
 
       <div className="space-y-6 mt-8">
@@ -49,8 +52,8 @@ export default function ReviewsSection({ listingId, listingOwnerId, user }) {
             user && review.author && user._id === review.author._id;
 
           return (
-            <div key={review._id} className="border rounded-xl p-4">
-              <div className="flex justify-between items-center">
+            <div key={review._id} className="surface-card p-4 sm:p-5">
+              <div className="flex justify-between items-center gap-3">
                 <span>{review.author?.username}</span>
 
                 <div className="flex items-center gap-3">
@@ -69,7 +72,7 @@ export default function ReviewsSection({ listingId, listingOwnerId, user }) {
                 </div>
               </div>
 
-              <p className="mt-2">{review.comment}</p>
+              <p className="mt-2 text-zinc-700 dark:text-zinc-300">{review.comment}</p>
             </div>
           );
         })}

@@ -36,7 +36,7 @@ router.patch(
 router.post(
   "/checkout/:listingId",
   protect,
-  createCheckoutSession
+  wrapAsync(createCheckoutSession) // ← add wrapAsync here
 );
 
 export default router;

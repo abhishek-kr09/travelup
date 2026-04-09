@@ -20,7 +20,7 @@ export default function BookingSection({ listing, user }) {
             state: { from: `/listings/${listing._id}` },
           })
         }
-        className="mt-6 w-full bg-gray-800 text-white py-3 rounded-xl hover:opacity-90 transition"
+        className="mt-6 w-full bg-zinc-800 dark:bg-zinc-100 text-white dark:text-zinc-900 py-3 rounded-xl hover:opacity-90 transition"
       >
         Login to Book
       </button>
@@ -31,7 +31,7 @@ export default function BookingSection({ listing, user }) {
   return (
     <button
       onClick={() => navigate(`/listings/${listing._id}/book`)}
-      className="mt-6 w-full bg-black text-white py-3 rounded-xl hover:opacity-90 transition"
+      className="mt-6 w-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 py-3 rounded-xl hover:opacity-90 transition"
     >
       Book Now
     </button>

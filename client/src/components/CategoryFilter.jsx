@@ -23,8 +23,8 @@ export default function CategoryFilter({ active, setActive }) {
               transition-all
               ${
                 active === cat
-                  ? "bg-black text-white"
-                  : "bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200"
+                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  : "bg-stone-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 hover:bg-stone-300 dark:hover:bg-zinc-700"
               }
             `}
           >

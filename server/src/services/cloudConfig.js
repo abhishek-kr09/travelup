@@ -1,5 +1,5 @@
-const cloudinary = require("cloudinary").v2;
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
+import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
 
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
@@ -7,7 +7,7 @@ cloudinary.config({
   api_secret: process.env.CLOUD_API_SECRET
 });
 
-const storage = new CloudinaryStorage({
+export const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: "Travelup",
@@ -15,8 +15,5 @@ const storage = new CloudinaryStorage({
   },
 });
 
-
-module.exports = {
-  cloudinary,
-  storage
-};
+// Use named exports to match your controller imports
+export { cloudinary };

@@ -5,6 +5,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import { Navigate } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
@@ -24,12 +25,12 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         {/* 🔥 Global Layout Wrapper */}
-        <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-white font-jakarta transition-colors">
+        <div className="min-h-screen flex flex-col bg-stone-100 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-jakarta transition-colors duration-300">
           {/* Navbar stays on every page */}
           <Navbar />
 
           {/* Main content area */}
-          <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
+          <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
             <Routes>
               <Route path="/" element={<Navigate to="/listings" replace />} />
               <Route path="/listings" element={<Listings />} />
@@ -109,14 +110,25 @@ function App() {
             </Routes>
           </main>
 
+          <Footer />
+
           <Toaster
-            position="top-right"
+            position="top-center"
+            containerStyle={{
+              top: "50%",
+              left: "50%",
+              right: "auto",
+              bottom: "auto",
+              transform: "translate(-50%, -50%)",
+            }}
             toastOptions={{
-              duration: 3000,
+              duration: 2600,
               style: {
-                borderRadius: "10px",
-                background: "#333",
-                color: "#fff",
+                borderRadius: "12px",
+                background: "#18181b",
+                color: "#fafafa",
+                border: "1px solid #3f3f46",
+                maxWidth: "92vw",
               },
             }}
           />

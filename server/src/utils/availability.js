@@ -1,5 +1,4 @@
-// /utils/availability.js
-const Booking = require("../models/booking");
+import Booking from "../models/booking.model.js"; // Ensure path and .js match your file name
 
 async function isAvailable(listingId, checkIn, checkOut) {
   if (!listingId || !checkIn || !checkOut) {
@@ -25,4 +24,5 @@ async function isAvailable(listingId, checkIn, checkOut) {
   }
 }
 
-module.exports = { isAvailable };
+// Change from module.exports to named export
+export { isAvailable };

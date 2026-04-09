@@ -1,6 +1,18 @@
-const User = require("../models/user.model");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+import User from "../models/user.model.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import Listing from "../models/listing.model.js";
+
+const getCookieOptions = () => {
+  const isProd = process.env.NODE_ENV === "production";
+
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  };
+};
 
 // Generate JWT
 const generateToken = (user) => {
@@ -12,8 +24,24 @@ const generateToken = (user) => {
 };
 
 // REGISTER
-exports.register = async (req, res) => {
-  const { username, email, password } = req.body;
+export const register = async (req, res) => {
+  const username = req.body.username?.trim();
+  const email = req.body.email?.trim().toLowerCase();
+  const password = req.body.password;
+
+  if (!username || !email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: "Username, email, and password are required"
+    });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: "Password must be at least 6 characters"
+    });
+  }
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
@@ -32,14 +60,7 @@ exports.register = async (req, res) => {
   });
 
   const token = generateToken(user);
-res.cookie("token", token, {
-  httpOnly: true,
-  secure: true,          // MUST be true on HTTPS
-  sameSite: "none",      // MUST be none for cross-site
-  maxAge: 7 * 24 * 60 * 60 * 1000
-});
-
-
+  res.cookie("token", token, getCookieOptions());
 
   res.status(201).json({
     success: true,
@@ -48,8 +69,16 @@ res.cookie("token", token, {
 };
 
 // LOGIN
-exports.login = async (req, res) => {
-  const { email, password } = req.body;
+export const login = async (req, res) => {
+  const email = req.body.email?.trim().toLowerCase();
+  const password = req.body.password;
+
+  if (!email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: "Email and password are required"
+    });
+  }
 
   const user = await User.findOne({ email });
 
@@ -71,13 +100,7 @@ exports.login = async (req, res) => {
 
   const token = generateToken(user);
 
-  res.cookie("token", token, {
-  httpOnly: true,
-  secure: true,          // MUST be true on HTTPS
-  sameSite: "none",      // MUST be none for cross-site
-  maxAge: 7 * 24 * 60 * 60 * 1000
-});
-
+  res.cookie("token", token, getCookieOptions());
 
   res.status(200).json({
     success: true,
@@ -85,14 +108,10 @@ exports.login = async (req, res) => {
   });
 };
 
-
 // LOGOUT
-exports.logout = (req, res) => {
-  res.clearCookie("token", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-  });
+export const logout = (req, res) => {
+  const { httpOnly, secure, sameSite } = getCookieOptions();
+  res.clearCookie("token", { httpOnly, secure, sameSite });
 
   res.status(200).json({
     success: true,
@@ -100,12 +119,9 @@ exports.logout = (req, res) => {
   });
 };
 
-
-const Listing = require("../models/listing.model");
-
-exports.isOwner = async (req, res, next) => {
+// OWNERSHIP CHECK
+export const isOwner = async (req, res, next) => {
   const { id } = req.params;
-
   const listing = await Listing.findById(id);
 
   if (!listing) {
@@ -125,7 +141,8 @@ exports.isOwner = async (req, res, next) => {
   next();
 };
 
-exports.getMe = async (req, res) => {
+// GET ME
+export const getMe = async (req, res) => {
   res.status(200).json({
     success: true,
     user: req.user
