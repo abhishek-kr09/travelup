@@ -19,11 +19,13 @@ import MyBookings from "./pages/MyBookings";
 import HostBookings from "./pages/HostBookings";
 import BookingSuccess from "./pages/BookingSuccess";
 import Profile from "./pages/Profile";
+import ScrollToTop from "./components/ScrollToTop";
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ScrollToTop />
         {/* 🔥 Global Layout Wrapper */}
         <div className="min-h-screen flex flex-col bg-stone-100 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-jakarta transition-colors duration-300">
           {/* Navbar stays on every page */}
