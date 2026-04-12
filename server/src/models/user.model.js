@@ -2,6 +2,16 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
+    firstName: {
+      type: String,
+      trim: true,
+      default: ""
+    },
+    lastName: {
+      type: String,
+      trim: true,
+      default: ""
+    },
     username: {
       type: String,
       required: true,
@@ -17,8 +27,16 @@ const userSchema = new mongoose.Schema(
       required: true
     }
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
+
+userSchema.virtual("fullName").get(function () {
+  return `${this.firstName || ""} ${this.lastName || ""}`.trim();
+});
 
 const User = mongoose.model("User", userSchema);
 

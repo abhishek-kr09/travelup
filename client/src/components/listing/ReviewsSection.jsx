@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import API from "../../api/axios";
 import ReviewForm from "./ReviewForm";
 import toast from "react-hot-toast";
+import { getUserDisplayName } from "../../utils/userDisplay";
 
 export default function ReviewsSection({ listingId, listingOwnerId, user }) {
   const [reviews, setReviews] = useState([]);
@@ -54,7 +55,7 @@ export default function ReviewsSection({ listingId, listingOwnerId, user }) {
           return (
             <div key={review._id} className="surface-card p-4 sm:p-5">
               <div className="flex justify-between items-center gap-3">
-                <span>{review.author?.username}</span>
+                <span>{getUserDisplayName(review.author)}</span>
 
                 <div className="flex items-center gap-3">
                   <span className="text-yellow-500">

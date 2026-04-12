@@ -12,7 +12,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">TravelUp</h3>
+            <Link to="/" className="inline-block text-lg font-semibold text-zinc-900 dark:text-zinc-100 hover:opacity-80 transition-opacity">TravelUp</Link>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
               Discover curated stays, memorable hosts, and seamless bookings tailored for modern travel.
             </p>

@@ -24,6 +24,7 @@ export default function EditListing() {
     image: null,
   });
   const [generating, setGenerating] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [aiTone, setAiTone] = useState(TONE_OPTIONS[0].value);
   const [aiDrafts, setAiDrafts] = useState([]);
 
@@ -100,7 +101,10 @@ export default function EditListing() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (submitting) return;
+
     try {
+      setSubmitting(true);
       const formData = new FormData();
 
       formData.append("title", form.title);
@@ -123,6 +127,8 @@ export default function EditListing() {
     } catch (err) {
       console.error("Update error:", err.response?.data || err.message);
       toast.error(err?.response?.data?.message || "Failed to edit");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -260,8 +266,17 @@ export default function EditListing() {
           className="input"
         />
 
-        <button className="w-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 py-3 rounded-lg">
-          Update Listing
+        <button
+          disabled={submitting}
+          className="w-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 py-3 rounded-lg disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+        >
+          {submitting && (
+            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
+              <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+            </svg>
+          )}
+          {submitting ? "Updating listing..." : "Update Listing"}
         </button>
       </form>
     </div>

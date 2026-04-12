@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
 
   // 🔄 Check login status on app load
   useEffect(() => {
-    API.get("/auth/me")
+    API.get("/auth/session")
       .then(res => {
         setUser(res.data.user);
       })
@@ -21,13 +21,13 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (data) => {
     await API.post("/auth/login", data);
-    const res = await API.get("/auth/me");
+    const res = await API.get("/auth/session");
     setUser(res.data.user);
   };
 
   const register = async (data) => {
     await API.post("/auth/register", data);
-    const res = await API.get("/auth/me");
+    const res = await API.get("/auth/session");
     setUser(res.data.user);
   };
 

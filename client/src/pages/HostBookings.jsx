@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
+import { getUserDisplayName } from "../utils/userDisplay";
 
 export default function HostBookings() {
   const [summary, setSummary] = useState(null);
@@ -14,10 +15,11 @@ export default function HostBookings() {
   const fetchBookings = async () => {
     try {
       const res = await API.get("/bookings/manage");
+      const payload = res?.data?.data || {};
 
-      setSummary(res.data.data.summary);
-      setConfirmedBookings(res.data.data.confirmedBookings);
-      setCancelledBookings(res.data.data.cancelledBookings);
+      setSummary(payload.summary || null);
+      setConfirmedBookings(Array.isArray(payload.confirmedBookings) ? payload.confirmedBookings : []);
+      setCancelledBookings(Array.isArray(payload.cancelledBookings) ? payload.cancelledBookings : []);
     } catch (err) {
       console.error("Host bookings error:", err);
     } finally {
@@ -101,12 +103,14 @@ function Section({ title, children }) {
 }
 
 function BookingCard({ booking, badge }) {
+  const guestName = getUserDisplayName(booking.user);
+
   return (
     <div className="surface-card p-4 sm:p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
       <div>
         <h3 className="font-semibold">{booking.listing?.title}</h3>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Guest: {booking.user?.username}
+          Guest: {guestName}
         </p>
         <p className="text-sm">
           {new Date(booking.checkIn).toLocaleDateString()} →{" "}

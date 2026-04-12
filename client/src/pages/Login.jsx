@@ -76,6 +76,7 @@ export default function Login() {
             Don’t have an account?{" "}
             <Link
               to="/register"
+              state={location.state?.from ? { from: location.state.from } : undefined}
               className="text-zinc-900 dark:text-zinc-100 font-semibold hover:underline"
             >
               Register

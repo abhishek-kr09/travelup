@@ -2,9 +2,11 @@ import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import API from "../api/axios";
 import { Link } from "react-router-dom";
+import { getUserDisplayName } from "../utils/userDisplay";
 
 export default function Profile() {
   const { user } = useAuth();
+  const userDisplayName = getUserDisplayName(user);
 
   const [activeTab, setActiveTab] = useState("overview");
   const [myListings, setMyListings] = useState([]);
@@ -59,7 +61,7 @@ export default function Profile() {
       {activeTab === "overview" && (
         <div className="surface-card p-6">
           <div className="grid sm:grid-cols-2 gap-4 text-sm sm:text-base">
-            <p><strong>Username:</strong> {user?.username}</p>
+            <p><strong>Full Name:</strong> {userDisplayName}</p>
             <p><strong>Email:</strong> {user?.email}</p>
             <p><strong>Total Listings:</strong> {myListings.length}</p>
             <p><strong>Total Bookings:</strong> {myBookings.length}</p>

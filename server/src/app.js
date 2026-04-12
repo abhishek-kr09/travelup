@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+import mongoose from "mongoose";
 
 import { config } from "./config/index.js";
 import listingRoutes from "./routes/listing.routes.js";
@@ -34,6 +35,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 app.use(cookieParser());
+
+app.use((req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      success: false,
+      message: "Database unavailable. Please check server network/DB and retry.",
+    });
+  }
+
+  return next();
+});
 
 // Routes
 app.use("/api/auth", authRoutes);

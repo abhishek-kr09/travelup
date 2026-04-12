@@ -11,6 +11,7 @@ import ListingInfo from "../components/listing/ListingInfo";
 import BookingSection from "../components/listing/BookingSection";
 import ReviewsSection from "../components/listing/ReviewsSection";
 import MapSection from "../components/listing/MapSection";
+import { getUserDisplayName, getUserInitial } from "../utils/userDisplay";
 
 export default function ListingDetails() {
   const { id } = useParams();
@@ -55,6 +56,9 @@ export default function ListingDetails() {
   if (loading) return <div className="p-10">Loading...</div>;
   if (!listing) return <div className="p-10">Listing not found</div>;
 
+  const ownerDisplayName = getUserDisplayName(listing.owner);
+  const ownerInitial = getUserInitial(listing.owner);
+
   return (
     <div className="max-w-7xl mx-auto py-8 sm:py-10 space-y-12 sm:space-y-16">
 
@@ -68,12 +72,12 @@ export default function ListingDetails() {
       {/* Owner Section */}
 <div className="surface-card p-4 sm:p-5 flex items-center gap-3">
   <div className="w-10 h-10 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center font-semibold">
-    {listing.owner?.username?.charAt(0).toUpperCase()}
+    {ownerInitial}
   </div>
 
   <div>
     <p className="text-sm text-zinc-500 dark:text-zinc-400">Owned by</p>
-    <p className="font-medium">{listing.owner?.username}</p>
+    <p className="font-medium">{ownerDisplayName}</p>
   </div>
 </div>
 
