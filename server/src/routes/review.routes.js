@@ -26,5 +26,12 @@ router.delete(
   wrapAsync(reviewController.deleteReview)
 );
 
+// PUT /api/listings/:id/reviews/:reviewId
+router.put(
+  "/:id/reviews/:reviewId",
+  protect,
+  wrapAsync(reviewController.updateReview)
+);
+
 // 2. Use export default
 export default router;

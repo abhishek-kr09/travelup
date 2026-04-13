@@ -5,14 +5,16 @@ import mongoose from "mongoose";
 // CREATE REVIEW
 export const createReview = async (req, res) => {
   const { id } = req.params;
-  const { comment, rating } = req.body;
+  const { comment, description, rating } = req.body;
+  const parsedRating = Number(rating);
+  const reviewText = (comment ?? description ?? "").trim();
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ success: false, message: "Invalid listing id" });
   }
 
-  if (!comment?.trim() || !Number.isFinite(Number(rating))) {
-    return res.status(400).json({ success: false, message: "Comment and valid rating are required" });
+  if (!Number.isFinite(parsedRating) || parsedRating < 1 || parsedRating > 5) {
+    return res.status(400).json({ success: false, message: "Valid rating between 1 and 5 is required" });
   }
 
   const listing = await Listing.findById(id);
@@ -37,8 +39,8 @@ export const createReview = async (req, res) => {
   }
 
   const review = new Review({
-    comment: comment.trim(),
-    rating: Number(rating),
+    comment: reviewText,
+    rating: parsedRating,
     author: req.user._id,
     listing: id
   });
@@ -51,6 +53,43 @@ export const createReview = async (req, res) => {
   res.status(201).json({
     success: true,
     data: review
+  });
+};
+
+// UPDATE REVIEW
+export const updateReview = async (req, res) => {
+  const { id, reviewId } = req.params;
+  const { comment, description, rating } = req.body;
+  const parsedRating = Number(rating);
+  const reviewText = (comment ?? description ?? "").trim();
+
+  if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(reviewId)) {
+    return res.status(400).json({ success: false, message: "Invalid review/listing id" });
+  }
+
+  if (!Number.isFinite(parsedRating) || parsedRating < 1 || parsedRating > 5) {
+    return res.status(400).json({ success: false, message: "Valid rating between 1 and 5 is required" });
+  }
+
+  const review = await Review.findById(reviewId);
+
+  if (!review || review.listing.toString() !== id) {
+    return res.status(404).json({ success: false, message: "Review not found" });
+  }
+
+  const isAuthor = review.author.toString() === req.user._id.toString();
+  if (!isAuthor) {
+    return res.status(403).json({ success: false, message: "Not authorized to edit this review" });
+  }
+
+  review.rating = parsedRating;
+  review.comment = reviewText;
+  await review.save();
+
+  res.status(200).json({
+    success: true,
+    data: review,
+    message: "Review updated successfully"
   });
 };
 
@@ -107,7 +146,7 @@ export const getReviewsForListing = async (req, res) => {
   }
 
   const reviews = await Review.find({ listing: id })
-    .populate("author", "username")
+    .populate("author", "firstName lastName username email")
     .sort({ createdAt: -1 });
 
   res.status(200).json({
