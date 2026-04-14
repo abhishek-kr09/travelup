@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import API from "../api/axios";
@@ -8,6 +8,7 @@ const TAX_RATE = 0.10;
 
 export default function CreateBooking() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
 
   const [listing, setListing] = useState(null);
@@ -15,6 +16,8 @@ export default function CreateBooking() {
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(1);
   const [bookedRanges, setBookedRanges] = useState([]); // [{checkIn, checkOut}]
+  const [existingPendingBooking, setExistingPendingBooking] = useState(null);
+  const [showPendingHint, setShowPendingHint] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -24,6 +27,11 @@ export default function CreateBooking() {
     fetchListing();
     fetchBookedDates();
   }, [id]);
+
+  useEffect(() => {
+    if (!user || !id) return;
+    fetchExistingPendingBooking();
+  }, [user, id]);
 
   const fetchListing = async () => {
     try {
@@ -42,6 +50,27 @@ export default function CreateBooking() {
       setBookedRanges(res.data.data || []);
     } catch {
       // non-critical — date blocking is a UX improvement, not a security gate
+    }
+  };
+
+  const fetchExistingPendingBooking = async () => {
+    try {
+      const res = await API.get("/bookings/my");
+      const myBookings = res.data.data || [];
+      const pendingForThisListing = myBookings.find((booking) => {
+        const bookingListingId = booking.listing?._id || booking.listing;
+        return (
+          booking.status === "pending" &&
+          bookingListingId &&
+          bookingListingId.toString() === id
+        );
+      });
+
+      setExistingPendingBooking(pendingForThisListing || null);
+      setShowPendingHint(Boolean(pendingForThisListing));
+    } catch {
+      setExistingPendingBooking(null);
+      setShowPendingHint(false);
     }
   };
 
@@ -132,6 +161,30 @@ export default function CreateBooking() {
   return (
     <div className="max-w-md mx-auto mt-8 sm:mt-14 surface-card p-5 sm:p-8 space-y-6">
       <h2 className="text-2xl font-semibold">Book {listing.title}</h2>
+
+      {existingPendingBooking && showPendingHint && (
+        <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 space-y-3">
+          <p className="text-sm text-yellow-800 dark:text-yellow-300 font-medium">
+            You already have a pending booking for this listing.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => navigate("/bookings/my")}
+              className="px-4 py-2 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm hover:opacity-90 transition"
+            >
+              Continue Previous Booking
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowPendingHint(false)}
+              className="px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              Book New Dates Instead
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Check In */}
       <div>

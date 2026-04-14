@@ -9,7 +9,7 @@ export default function Footer() {
 
   return (
     <footer className="mt-10 border-t border-stone-200 dark:border-zinc-800 bg-stone-50/90 dark:bg-zinc-900/90 backdrop-blur">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
+      <div className="max-w-[1500px] mx-auto px-4 sm:px-5 lg:px-6 py-14 sm:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
           <div className="space-y-3">
             <Link to="/" className="inline-block text-lg font-semibold text-zinc-900 dark:text-zinc-100 hover:opacity-80 transition-opacity">TravelUp</Link>

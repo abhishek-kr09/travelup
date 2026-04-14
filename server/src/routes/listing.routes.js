@@ -12,6 +12,8 @@ const router = express.Router();
 const upload = multer({ storage });
 
 router.get("/my", protect, wrapAsync(listingController.getMyListings));
+router.get("/:id/host-profile", wrapAsync(listingController.getHostProfileForListing));
+router.get("/:id/nearby", wrapAsync(listingController.getNearbyListingsForListing));
 
 // GET ALL + CREATE
 router.route("/")
@@ -42,7 +44,7 @@ router.get("/:id/booked-dates", wrapAsync(async (req, res) => {
     checkOut: { $gte: new Date() },
     $or: [
       { status: "confirmed" },
-      { status: "pending", createdAt: { $gte: pendingExpiryCutoff } },
+      { status: "pending", updatedAt: { $gte: pendingExpiryCutoff } },
     ],
   }).select("checkIn checkOut -_id");
 

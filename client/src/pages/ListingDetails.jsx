@@ -11,7 +11,9 @@ import ListingInfo from "../components/listing/ListingInfo";
 import BookingSection from "../components/listing/BookingSection";
 import ReviewsSection from "../components/listing/ReviewsSection";
 import MapSection from "../components/listing/MapSection";
-import { getUserDisplayName, getUserInitial } from "../utils/userDisplay";
+import MeetHostSection from "../components/listing/MeetHostSection";
+import NearbyListingsSection from "../components/listing/NearbyListingsSection";
+import ThingsToKnowSection from "../components/listing/ThingsToKnowSection";
 
 export default function ListingDetails() {
   const { id } = useParams();
@@ -22,6 +24,7 @@ export default function ListingDetails() {
   const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [hostProfile, setHostProfile] = useState(null);
 
   useEffect(() => {
     fetchListing();
@@ -37,6 +40,20 @@ export default function ListingDetails() {
       setLoading(false);
     }
   };
+
+  const fetchHostProfile = async () => {
+    try {
+      const res = await API.get(`/listings/${id}/host-profile`);
+      setHostProfile(res.data.data || null);
+    } catch (err) {
+      console.error("Host profile fetch error:", err);
+      setHostProfile(null);
+    }
+  };
+
+  useEffect(() => {
+    fetchHostProfile();
+  }, [id]);
 
   const handleDelete = async () => {
     try {
@@ -56,9 +73,6 @@ export default function ListingDetails() {
   if (loading) return <div className="p-10">Loading...</div>;
   if (!listing) return <div className="p-10">Listing not found</div>;
 
-  const ownerDisplayName = getUserDisplayName(listing.owner);
-  const ownerInitial = getUserInitial(listing.owner);
-
   return (
     <div className="max-w-7xl mx-auto py-8 sm:py-10 space-y-12 sm:space-y-16">
 
@@ -68,19 +82,6 @@ export default function ListingDetails() {
         user={user}
         onDelete={() => setShowDeleteConfirm(true)}
       />
-
-      {/* Owner Section */}
-<div className="surface-card p-4 sm:p-5 flex items-center gap-3">
-  <div className="w-10 h-10 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center font-semibold">
-    {ownerInitial}
-  </div>
-
-  <div>
-    <p className="text-sm text-zinc-500 dark:text-zinc-400">Owned by</p>
-    <p className="font-medium">{ownerDisplayName}</p>
-  </div>
-</div>
-
 
       {/* Gallery + Info + Booking */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -92,16 +93,24 @@ export default function ListingDetails() {
         </div>
       </div>
 
-      {/* Map Section */}
-      <MapSection geometry={listing.geometry} />
-
-
       {/* Reviews Section */}
       <ReviewsSection
   listingId={id}
   listingOwnerId={listing.owner?._id || listing.owner}
   user={user}
 />
+
+      {/* Map Section */}
+      <MapSection geometry={listing.geometry} />
+
+      {/* Meet Host Section */}
+      <MeetHostSection hostProfile={hostProfile} />
+
+      {/* Nearby Listings Section */}
+      <NearbyListingsSection listingId={id} />
+
+      {/* Things To Know Section */}
+      <ThingsToKnowSection listing={listing} />
 
       <ConfirmDialog
         open={showDeleteConfirm}

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
 import { useAuth } from "../context/AuthContext";
-import ConfirmDialog from "../components/ConfirmDialog";
 
 export default function MyBookings() {
   const { user, loading: authLoading } = useAuth();
@@ -9,8 +8,8 @@ export default function MyBookings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [cancellingId, setCancellingId] = useState(null);
+  const [retryingId, setRetryingId] = useState(null);
   const [cancelMessage, setCancelMessage] = useState("");
-  const [confirmCancelId, setConfirmCancelId] = useState(null);
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -32,18 +31,39 @@ export default function MyBookings() {
 
   const cancelBooking = async (id) => {
     setCancelMessage("");
+    setError("");
     try {
       setCancellingId(id);
       const res = await API.patch(`/bookings/${id}/cancel`);
       // Show refund message from server
       setCancelMessage(res.data.message || "Booking cancelled.");
-      fetchBookings();
+      await fetchBookings();
     } catch (err) {
       setError(err?.response?.data?.message || "Cancel failed.");
     } finally {
       setCancellingId(null);
     }
     // FIX: removed toast.error — toast was never imported, caused crash
+  };
+
+  const retryPayment = async (bookingId) => {
+    setError("");
+    setCancelMessage("");
+
+    try {
+      setRetryingId(bookingId);
+      const res = await API.post(`/bookings/${bookingId}/retry-payment`);
+      if (res.data?.url) {
+        window.location.href = res.data.url;
+        return;
+      }
+      setError("Could not start payment retry.");
+    } catch (err) {
+      setError(err?.response?.data?.message || "Retry payment failed.");
+      await fetchBookings();
+    } finally {
+      setRetryingId(null);
+    }
   };
 
   if (authLoading || loading) {
@@ -108,15 +128,34 @@ export default function MyBookings() {
 
               {/* Pending explanation */}
               {booking.status === "pending" && (
-                <p className="mt-3 text-xs text-yellow-600 dark:text-yellow-400">
-                  Payment is being confirmed. This may take a few seconds.
-                </p>
+                <div className="mt-3 space-y-3">
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                    Dates are temporarily held for this payment session.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      onClick={() => retryPayment(booking._id)}
+                      disabled={retryingId === booking._id || cancellingId === booking._id}
+                      className="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm hover:opacity-90 transition disabled:opacity-50"
+                    >
+                      {retryingId === booking._id ? "Opening..." : "Retry Payment"}
+                    </button>
+
+                    <button
+                      onClick={() => cancelBooking(booking._id)}
+                      disabled={cancellingId === booking._id}
+                      className="border border-zinc-300 dark:border-zinc-700 px-4 py-2 rounded-lg text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-50"
+                    >
+                      {cancellingId === booking._id ? "Cancelling..." : "Cancel Pending"}
+                    </button>
+                  </div>
+                </div>
               )}
 
               {/* Cancel button — only for confirmed bookings */}
               {booking.status === "confirmed" && (
                 <button
-                  onClick={() => setConfirmCancelId(booking._id)}
+                  onClick={() => cancelBooking(booking._id)}
                   disabled={cancellingId === booking._id}
                   className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:opacity-90 transition text-sm disabled:opacity-50"
                 >
@@ -128,15 +167,6 @@ export default function MyBookings() {
         </div>
       )}
 
-      <ConfirmDialog
-        open={Boolean(confirmCancelId)}
-        title="Cancel this booking?"
-        message="Refund amount depends on cancellation policy."
-        confirmLabel="Yes, Cancel"
-        onCancel={() => setConfirmCancelId(null)}
-        onConfirm={() => cancelBooking(confirmCancelId)}
-        loading={Boolean(confirmCancelId && cancellingId === confirmCancelId)}
-      />
     </div>
   );
 }

@@ -93,7 +93,7 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 bg-stone-50/90 dark:bg-zinc-900/90 border-b border-stone-200 dark:border-zinc-800 backdrop-blur shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+      <div className="max-w-[1500px] mx-auto px-4 sm:px-5 lg:px-6 py-3">
         {/* Logo */}
         <div className="flex items-center justify-between gap-3">
           <Link to="/" className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100" onClick={closeMenu}>

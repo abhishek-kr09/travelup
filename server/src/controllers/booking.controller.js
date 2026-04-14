@@ -4,6 +4,52 @@ import Booking from "../models/booking.model.js";
 import Listing from "../models/listing.model.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const PENDING_HOLD_MINUTES = 31;
+
+const getPendingExpiryCutoff = () =>
+  new Date(Date.now() - PENDING_HOLD_MINUTES * 60 * 1000);
+
+const createStripeSessionForBooking = async ({
+  listing,
+  userId,
+  checkIn,
+  checkOut,
+  guests,
+  nights,
+  subtotal,
+  tax,
+  total,
+}) => {
+  return stripe.checkout.sessions.create({
+    mode: "payment",
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price_data: {
+          currency: "inr",
+          product_data: { name: listing.title },
+          unit_amount: total * 100,
+        },
+        quantity: 1,
+      },
+    ],
+    metadata: {
+      listingId: listing._id.toString(),
+      userId: userId.toString(),
+      checkIn: checkIn.toString(),
+      checkOut: checkOut.toString(),
+      guests: guests.toString(),
+      nights: nights.toString(),
+      subtotal: subtotal.toString(),
+      tax: tax.toString(),
+      total: total.toString(),
+      pricePerNight: listing.price.toString(),
+    },
+    success_url: `${process.env.CLIENT_URL}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${process.env.CLIENT_URL}/bookings/my`,
+    expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
+  });
+};
 
 export const getMyBookings = async (req, res) => {
   const bookings = await Booking.find({ user: req.user._id })
@@ -60,6 +106,8 @@ export const cancelBooking = async (req, res) => {
   if (booking.status === "refunded")
     return res.status(400).json({ success: false, message: "Already refunded" });
 
+  const wasPendingHold = booking.status === "pending";
+
   const now = new Date();
   const daysUntilCheckIn = (new Date(booking.checkIn) - now) / (1000 * 60 * 60 * 24);
 
@@ -83,14 +131,18 @@ export const cancelBooking = async (req, res) => {
     booking.status = "cancelled";
   }
 
-  booking.cancellationReason = req.body.reason || "User requested";
+  booking.cancellationReason = req.body?.reason || "User requested";
   await booking.save();
+
+  const message = wasPendingHold
+    ? "Pending booking cancelled successfully."
+    : refundAmount > 0
+      ? `Cancelled. Refund of ₹${refundAmount} initiated.`
+      : "Cancelled. No refund applicable.";
 
   res.status(200).json({
     success: true,
-    message: refundAmount > 0
-      ? `Cancelled. Refund of ₹${refundAmount} initiated.`
-      : "Cancelled. No refund applicable.",
+    message,
     refundAmount,
   });
 };
@@ -136,12 +188,12 @@ export const createCheckoutSession = async (req, res) => {
       return res.status(400).json({ message: `Max ${listing.maxGuests} guests allowed` });
 
     // Release stale pending reservations when webhook expiration is delayed/missed.
-    const pendingExpiryCutoff = new Date(Date.now() - 31 * 60 * 1000);
+    const pendingExpiryCutoff = getPendingExpiryCutoff();
     await Booking.updateMany(
       {
         listing: listingId,
         status: "pending",
-        createdAt: { $lt: pendingExpiryCutoff },
+        updatedAt: { $lt: pendingExpiryCutoff },
       },
       {
         status: "cancelled",
@@ -155,44 +207,59 @@ export const createCheckoutSession = async (req, res) => {
       checkOut: { $gt: start },
       $or: [
         { status: "confirmed" },
-        { status: "pending", createdAt: { $gte: pendingExpiryCutoff } },
+        { status: "pending", updatedAt: { $gte: pendingExpiryCutoff } },
       ],
     });
 
-    if (overlapping)
-      return res.status(400).json({ message: "These dates are already booked" });
+    if (overlapping) {
+      const isSameUserPending =
+        overlapping.status === "pending" &&
+        overlapping.user.toString() === req.user._id.toString();
+
+      if (!isSameUserPending) {
+        return res.status(400).json({
+          message: "These dates are currently held/booked by another user",
+        });
+      }
+
+      if (overlapping.stripeSessionId) {
+        try {
+          const existingSession = await stripe.checkout.sessions.retrieve(
+            overlapping.stripeSessionId
+          );
+
+          if (existingSession?.status === "open" && existingSession?.url) {
+            return res.status(200).json({
+              url: existingSession.url,
+              bookingId: overlapping._id,
+              reused: true,
+            });
+          }
+        } catch (sessionErr) {
+          console.error("Existing session fetch failed:", sessionErr.message);
+        }
+      }
+
+      // Old/closed same-user pending hold: release it and create a fresh session below.
+      overlapping.status = "cancelled";
+      overlapping.cancellationReason = "Retrying payment with a fresh session";
+      await overlapping.save();
+    }
 
     const subtotal = nights * listing.price;
     const tax = Math.round(subtotal * 0.1);
     const total = subtotal + tax;
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      line_items: [{
-        price_data: {
-          currency: "inr",
-          product_data: { name: listing.title },
-          unit_amount: total * 100,
-        },
-        quantity: 1,
-      }],
-      metadata: {
-        listingId: listingId.toString(),
-        userId: req.user._id.toString(),
-        checkIn: checkIn.toString(),
-        checkOut: checkOut.toString(),
-        guests: guestsCount.toString(),
-        nights: nights.toString(),
-        subtotal: subtotal.toString(),
-        tax: tax.toString(),
-        total: total.toString(),
-        pricePerNight: listing.price.toString(),
-      },
-      // ✅ FIXED — Stripe fills in the real session ID on redirect
-      success_url: `${process.env.CLIENT_URL}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.CLIENT_URL}/booking-cancel`,
-      expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
+    const session = await createStripeSessionForBooking({
+      listing,
+      userId: req.user._id,
+      checkIn,
+      checkOut,
+      guests: guestsCount,
+      nights,
+      subtotal,
+      tax,
+      total,
     });
 
     await Booking.create({
@@ -215,6 +282,88 @@ export const createCheckoutSession = async (req, res) => {
     console.error("Checkout error:", error);
     res.status(500).json({ message: error.message });
   }
+};
+
+export const retryPendingBookingPayment = async (req, res) => {
+  const { bookingId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+    return res.status(400).json({ success: false, message: "Invalid booking id" });
+  }
+
+  const booking = await Booking.findById(bookingId).populate("listing");
+  if (!booking) {
+    return res.status(404).json({ success: false, message: "Booking not found" });
+  }
+
+  if (booking.user.toString() !== req.user._id.toString()) {
+    return res.status(403).json({ success: false, message: "Not authorized" });
+  }
+
+  if (booking.status !== "pending") {
+    return res.status(400).json({ success: false, message: "Only pending bookings can be retried" });
+  }
+
+  const pendingExpiryCutoff = getPendingExpiryCutoff();
+
+  await Booking.updateMany(
+    {
+      listing: booking.listing._id,
+      status: "pending",
+      updatedAt: { $lt: pendingExpiryCutoff },
+    },
+    {
+      status: "cancelled",
+      cancellationReason: "Payment session expired (auto cleanup)",
+    }
+  );
+
+  const conflictingActive = await Booking.findOne({
+    _id: { $ne: booking._id },
+    listing: booking.listing._id,
+    checkIn: { $lt: booking.checkOut },
+    checkOut: { $gt: booking.checkIn },
+    $or: [
+      { status: "confirmed" },
+      { status: "pending", updatedAt: { $gte: pendingExpiryCutoff } },
+    ],
+  });
+
+  if (conflictingActive) {
+    return res.status(400).json({
+      success: false,
+      message: "This booking slot is now held/booked by another user",
+    });
+  }
+
+  if (booking.stripeSessionId) {
+    try {
+      const existingSession = await stripe.checkout.sessions.retrieve(booking.stripeSessionId);
+      if (existingSession?.status === "open" && existingSession?.url) {
+        return res.status(200).json({ success: true, url: existingSession.url, reused: true });
+      }
+    } catch (err) {
+      console.error("Retry existing session lookup failed:", err.message);
+    }
+  }
+
+  const session = await createStripeSessionForBooking({
+    listing: booking.listing,
+    userId: req.user._id,
+    checkIn: booking.checkIn,
+    checkOut: booking.checkOut,
+    guests: booking.guests,
+    nights: booking.nights,
+    subtotal: booking.subtotal,
+    tax: booking.tax,
+    total: booking.total,
+  });
+
+  booking.stripeSessionId = session.id;
+  booking.cancellationReason = undefined;
+  await booking.save();
+
+  res.status(200).json({ success: true, url: session.url, reused: false });
 };
 
 export const stripeWebhook = async (req, res) => {

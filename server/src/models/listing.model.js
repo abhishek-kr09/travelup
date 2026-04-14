@@ -42,6 +42,8 @@ const listingSchema = new Schema(
   { timestamps: true }
 );
 
+listingSchema.index({ geometry: "2dsphere" });
+
 // Cascade delete reviews
 listingSchema.post("findOneAndDelete", async function (listing) {
   if (listing) {
