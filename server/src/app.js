@@ -11,7 +11,8 @@ import reviewRoutes from "./routes/review.routes.js";
 import bookingRoutes from "./routes/booking.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
 import { stripeWebhook } from "./controllers/booking.controller.js";
-import wrapAsync from "./utils/wrapAsync.js"; // Adjust path if necessary
+import wrapAsync from "./utils/wrapAsync.js";
+import "./events/booking.events.js";
 
 
 const app = express();

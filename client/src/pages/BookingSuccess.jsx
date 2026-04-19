@@ -14,21 +14,27 @@ export default function BookingSuccess() {
   const [booking, setBooking] = useState(null);
 
   useEffect(() => {
+    if (!sessionId) {
+      setStatus("timeout");
+      return;
+    }
+
     let attempts = 0;
 
     const poll = async () => {
       try {
-        const res = await API.get("/bookings/my");
-        const bookings = res.data.data || [];
+        const res = await API.get(`/bookings/checkout-session/${sessionId}/status`);
+        const data = res.data?.data;
+        const match = data?.booking;
 
-        // FIX: find the booking that matches THIS session, not just bookings[0]
-        const match = bookings.find(
-          b => b.stripeSessionId === sessionId && b.status === "confirmed"
-        );
-
-        if (match) {
+        if (data?.status === "confirmed" && match) {
           setBooking(match);
           setStatus("confirmed");
+          return;
+        }
+
+        if (data?.status === "cancelled") {
+          setStatus("timeout");
           return;
         }
 

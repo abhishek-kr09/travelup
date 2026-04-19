@@ -4,7 +4,8 @@ import {
   getMyBookings,
   getHostBookings,
   cancelBooking,
-  retryPendingBookingPayment
+  retryPendingBookingPayment,
+  getCheckoutSessionStatus
 } from "../controllers/booking.controller.js";
 
 import { protect } from "../middlewares/auth.middleware.js";
@@ -37,6 +38,12 @@ router.post(
   "/:bookingId/retry-payment",
   protect,
   wrapAsync(retryPendingBookingPayment)
+);
+
+router.get(
+  "/checkout-session/:sessionId/status",
+  protect,
+  wrapAsync(getCheckoutSessionStatus)
 );
 
 // Create Stripe checkout session

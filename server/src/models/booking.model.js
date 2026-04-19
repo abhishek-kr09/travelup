@@ -23,7 +23,6 @@ const bookingSchema = new Schema(
       unique: true,
       sparse: true,
     },
-    // ← THIS WAS MISSING — webhook cannot find pending booking without it
     stripeSessionId: {
       type: String,
       sparse: true,
@@ -31,6 +30,8 @@ const bookingSchema = new Schema(
     },
     cancellationReason: { type: String },
     refundAmount: { type: Number },
+    confirmationEmailSentAt: { type: Date },
+    cancellationEmailSentAt: { type: Date },
   },
   { timestamps: true }
 );

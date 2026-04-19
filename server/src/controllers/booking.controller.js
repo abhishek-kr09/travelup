@@ -2,6 +2,11 @@ import Stripe from "stripe";
 import mongoose from "mongoose";
 import Booking from "../models/booking.model.js";
 import Listing from "../models/listing.model.js";
+import eventBus from "../events/eventBus.js";
+import {
+  BOOKING_CONFIRMED_EVENT,
+  BOOKING_CANCELLED_EVENT,
+} from "../events/eventNames.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const PENDING_HOLD_MINUTES = 31;
@@ -107,6 +112,7 @@ export const cancelBooking = async (req, res) => {
     return res.status(400).json({ success: false, message: "Already refunded" });
 
   const wasPendingHold = booking.status === "pending";
+  const wasConfirmedBooking = booking.status === "confirmed";
 
   const now = new Date();
   const daysUntilCheckIn = (new Date(booking.checkIn) - now) / (1000 * 60 * 60 * 24);
@@ -133,6 +139,10 @@ export const cancelBooking = async (req, res) => {
 
   booking.cancellationReason = req.body?.reason || "User requested";
   await booking.save();
+
+  if (wasConfirmedBooking) {
+    eventBus.emit(BOOKING_CANCELLED_EVENT, { bookingId: booking._id.toString() });
+  }
 
   const message = wasPendingHold
     ? "Pending booking cancelled successfully."
@@ -366,6 +376,104 @@ export const retryPendingBookingPayment = async (req, res) => {
   res.status(200).json({ success: true, url: session.url, reused: false });
 };
 
+export const getCheckoutSessionStatus = async (req, res) => {
+  const { sessionId } = req.params;
+
+  if (!sessionId) {
+    return res.status(400).json({ success: false, message: "Session id is required" });
+  }
+
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const metadata = session.metadata || {};
+    const sessionUserId = metadata.userId?.toString();
+
+    if (sessionUserId && sessionUserId !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Not authorized for this session" });
+    }
+
+    let booking = await Booking.findOne({
+      stripeSessionId: sessionId,
+      user: req.user._id,
+    }).populate("listing", "title");
+
+    // Fallback reconciliation path: some older records may miss stripeSessionId.
+    if (!booking && session.payment_intent) {
+      booking = await Booking.findOne({
+        paymentIntentId: session.payment_intent,
+        user: req.user._id,
+      }).populate("listing", "title");
+    }
+
+    if (
+      !booking &&
+      metadata.listingId &&
+      metadata.checkIn &&
+      metadata.checkOut
+    ) {
+      booking = await Booking.findOne({
+        user: req.user._id,
+        listing: metadata.listingId,
+        checkIn: new Date(metadata.checkIn),
+        checkOut: new Date(metadata.checkOut),
+        status: { $in: ["pending", "confirmed"] },
+      })
+        .sort({ createdAt: -1 })
+        .populate("listing", "title");
+
+      if (booking && !booking.stripeSessionId) {
+        booking.stripeSessionId = sessionId;
+        await booking.save();
+      }
+    }
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found for this session" });
+    }
+
+    if (
+      booking.status === "pending" &&
+      session.status === "complete" &&
+      session.payment_status === "paid"
+    ) {
+      booking.status = "confirmed";
+      if (!booking.stripeSessionId) {
+        booking.stripeSessionId = sessionId;
+      }
+      if (session.payment_intent) {
+        booking.paymentIntentId = session.payment_intent;
+      }
+      booking.cancellationReason = undefined;
+      await booking.save();
+      eventBus.emit(BOOKING_CONFIRMED_EVENT, { bookingId: booking._id.toString() });
+    }
+
+    if (booking.status === "pending" && session.status === "expired") {
+      booking.status = "cancelled";
+      booking.cancellationReason = "Payment session expired";
+      await booking.save();
+    }
+
+    if (booking.status === "confirmed" && !booking.confirmationEmailSentAt) {
+      eventBus.emit(BOOKING_CONFIRMED_EVENT, { bookingId: booking._id.toString() });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        status: booking.status,
+        booking,
+      },
+    });
+  } catch (err) {
+    console.error("Checkout session status lookup failed:", err.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to verify checkout session",
+    });
+  }
+};
+
 export const stripeWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
@@ -382,7 +490,6 @@ export const stripeWebhook = async (req, res) => {
     const session = event.data.object;
 
     try {
-      // FIX B: match on stripeSessionId — reliable, no timezone drift
       const existing = await Booking.findOneAndUpdate(
         {
           stripeSessionId: session.id,
@@ -397,8 +504,23 @@ export const stripeWebhook = async (req, res) => {
 
       if (existing) {
         console.log("✅ Booking confirmed:", existing._id);
+        eventBus.emit(BOOKING_CONFIRMED_EVENT, { bookingId: existing._id.toString() });
       } else {
         console.error("❌ No pending booking for session:", session.id);
+
+        const fallbackBooking = await Booking.findOne({
+          $or: [
+            { stripeSessionId: session.id },
+            { paymentIntentId: session.payment_intent },
+          ],
+          status: "confirmed",
+        }).select("_id confirmationEmailSentAt");
+
+        if (fallbackBooking && !fallbackBooking.confirmationEmailSentAt) {
+          eventBus.emit(BOOKING_CONFIRMED_EVENT, {
+            bookingId: fallbackBooking._id.toString(),
+          });
+        }
       }
     } catch (err) {
       if (err.code === 11000) {
